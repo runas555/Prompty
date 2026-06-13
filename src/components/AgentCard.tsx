@@ -180,7 +180,20 @@ export default function AgentCard({
             {isOwner && (
               <>
                 <button
-                  onClick={() => onEdit(agent)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(agent.id);
+                  }}
+                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-slate-800/50 rounded-lg transition-all"
+                  title={t("confirmDelete")}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(agent);
+                  }}
                   className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all"
                   title={t("agentCardEdit")}
                 >
