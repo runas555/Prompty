@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Heart, MessageSquare, Copy, Check, History, Trash2, Calendar } from "lucide-react";
+import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2, Calendar } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
 export interface Agent {
