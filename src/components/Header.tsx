@@ -7,13 +7,15 @@ interface HeaderProps {
   onLoginClick: () => void;
   onOpenAddModal: () => void;
   totalAgents: number;
+  checkingSession?: boolean;
 }
 
 export default function Header({
   user,
   onLoginClick,
   onOpenAddModal,
-  totalAgents
+  totalAgents,
+  checkingSession = false
 }: HeaderProps) {
   const { language, setLanguage, t } = useLanguage();
   return (
@@ -52,7 +54,7 @@ export default function Header({
               {t("headerShare")}
             </button>
             
-            {!user && (
+            {!checkingSession && !user && (
               <button
                 onClick={onLoginClick}
                 className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"

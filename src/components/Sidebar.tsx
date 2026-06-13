@@ -13,6 +13,7 @@ interface SidebarProps {
   totalPromptsCount: number;
   onSettingsClick?: () => void;
   onLogoutClick?: () => void;
+  checkingSession?: boolean;
 }
 
 export const CATEGORIES = [
@@ -37,7 +38,8 @@ export default function Sidebar({
   user,
   totalPromptsCount,
   onSettingsClick,
-  onLogoutClick
+  onLogoutClick,
+  checkingSession = false
 }: SidebarProps) {
   const { t } = useLanguage();
   const catLabelMap: Record<string, string> = {
@@ -60,7 +62,16 @@ export default function Sidebar({
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
         <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">{t("sidebarProfile")}</h3>
-        {user ? (
+        {checkingSession ? (
+          <div className="animate-pulse flex flex-col gap-3 relative z-10">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-slate-800" />
+              <div className="h-4 bg-slate-800 rounded w-24" />
+            </div>
+            <div className="h-3 bg-slate-800 rounded w-full" />
+            <div className="h-3 bg-slate-800 rounded w-4/5" />
+          </div>
+        ) : user ? (
           <div className="relative z-10 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               {user.avatar ? (

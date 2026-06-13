@@ -37,6 +37,7 @@ export default function Home() {
 
   // Сессионные данные
   const [user, setUser] = useState<{ id: string; username: string; bio: string; avatar: string } | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   // Навигация для мобильных платформ
   const [mobileTab, setMobileTab] = useState<"feed" | "categories" | "search" | "profile">("feed");
@@ -74,6 +75,7 @@ export default function Home() {
     } catch (err) {
       console.error(err);
     } finally {
+      setCheckingSession(false);
       fetchFeed();
     }
   };
@@ -262,6 +264,7 @@ export default function Home() {
         onLoginClick={() => setIsAuthOpen(true)}
         onOpenAddModal={handleOpenAddModal}
         totalAgents={agents.length}
+        checkingSession={checkingSession}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
@@ -270,6 +273,7 @@ export default function Home() {
           setActiveCategory={setActiveCategory}
           user={user}
           totalPromptsCount={agents.length}
+          checkingSession={checkingSession}
         />
 
         <div className="flex-1 flex flex-col gap-5 md:gap-6">
@@ -449,7 +453,9 @@ export default function Home() {
 
           {/* Вкладка 4: Мобильный Профиль (мобильные) */}
           <div className={`md:hidden flex flex-col gap-4 ${mobileTab === "profile" ? "block" : "hidden"}`}>
-            {user ? (
+            {checkingSession ? (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 animate-pulse flex flex-col gap-4 h-[180px] glass" />
+            ) : user ? (
               <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 glass">
                 <div className="flex items-center gap-3">
                   {user.avatar ? (

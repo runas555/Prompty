@@ -87,47 +87,240 @@ function createDump() {
 }
 
 function main() {
-  console.log("=== Добавление кнопки удаления публикаций на карточки ===");
+  console.log("=== Исправление бага с мерцанием сессии (flash of guest UI) ===");
 
-  // Ищем блок кнопок владельца поста и заменяем его на блок с поддержкой как редактирования, так и удаления
-  const targetOwnerBlock = `{isOwner && (
-              <>
-                <button
-                  onClick={() => onEdit(agent)}
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all"
-                  title={t("agentCardEdit")}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}`;
+  // --- Шаг 1: Правки в src/app/page.tsx ---
 
-  const fixedOwnerBlock = `{isOwner && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(agent.id);
-                  }}
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-slate-800/50 rounded-lg transition-all"
-                  title={t("confirmDelete")}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(agent);
-                  }}
-                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all"
-                  title={t("agentCardEdit")}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}`;
+  // 1. Добавляем состояние checkingSession
+  replaceAtAnchor(
+    'src/app/page.tsx',
+    `// Сессионные данные
+  const [user, setUser] = useState<{ id: string; username: string; bio: string; avatar: string } | null>(null);`,
+    `// Сессионные данные
+  const [user, setUser] = useState<{ id: string; username: string; bio: string; avatar: string } | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);`,
+    "replace"
+  );
 
-  replaceAtAnchor('src/components/AgentCard.tsx', targetOwnerBlock, fixedOwnerBlock, "replace");
+  // 2. Обновляем checkSession для переключения checkingSession в false
+  replaceAtAnchor(
+    'src/app/page.tsx',
+    `const checkSession = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated) {
+          setUser(data.user);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      fetchFeed();
+    }
+  };`,
+    `const checkSession = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated) {
+          setUser(data.user);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCheckingSession(false);
+      fetchFeed();
+    }
+  };`,
+    "replace"
+  );
+
+  // 3. Передаем checkingSession в Header
+  replaceAtAnchor(
+    'src/app/page.tsx',
+    `<Header
+        user={user}
+        onLoginClick={() => setIsAuthOpen(true)}
+        onOpenAddModal={handleOpenAddModal}
+        totalAgents={agents.length}
+      />`,
+    `<Header
+        user={user}
+        onLoginClick={() => setIsAuthOpen(true)}
+        onOpenAddModal={handleOpenAddModal}
+        totalAgents={agents.length}
+        checkingSession={checkingSession}
+      />`,
+    "replace"
+  );
+
+  // 4. Передаем checkingSession в Sidebar
+  replaceAtAnchor(
+    'src/app/page.tsx',
+    `<Sidebar onSettingsClick={() => setIsProfileOpen(true)}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+          user={user}
+          totalPromptsCount={agents.length}
+        />`,
+    `<Sidebar onSettingsClick={() => setIsProfileOpen(true)}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+          user={user}
+          totalPromptsCount={agents.length}
+          checkingSession={checkingSession}
+        />`,
+    "replace"
+  );
+
+  // 5. Предотвращаем мерцание в мобильной вкладке кабинета
+  replaceAtAnchor(
+    'src/app/page.tsx',
+    `{/* Вкладка 4: Мобильный Профиль (мобильные) */}
+          <div className={\`md:hidden flex flex-col gap-4 \${mobileTab === "profile" ? "block" : "hidden"}\`}>
+            {user ? (`,
+    `{/* Вкладка 4: Мобильный Профиль (мобильные) */}
+          <div className={\`md:hidden flex flex-col gap-4 \${mobileTab === "profile" ? "block" : "hidden"}\`}>
+            {checkingSession ? (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 animate-pulse flex flex-col gap-4 h-[180px] glass" />
+            ) : user ? (`,
+    "replace"
+  );
+
+
+  // --- Шаг 2: Правки в src/components/Header.tsx ---
+
+  // 1. ДобавляемcheckingSession в HeaderProps интерфейс
+  replaceAtAnchor(
+    'src/components/Header.tsx',
+    `interface HeaderProps {
+  user: { id: string; username: string; bio: string } | null;
+  onLoginClick: () => void;
+  onOpenAddModal: () => void;
+  totalAgents: number;
+}`,
+    `interface HeaderProps {
+  user: { id: string; username: string; bio: string } | null;
+  onLoginClick: () => void;
+  onOpenAddModal: () => void;
+  totalAgents: number;
+  checkingSession?: boolean;
+}`,
+    "replace"
+  );
+
+  // 2. Деструктурируем checkingSession в Header компоненте
+  replaceAtAnchor(
+    'src/components/Header.tsx',
+    `export default function Header({
+  user,
+  onLoginClick,
+  onOpenAddModal,
+  totalAgents
+}: HeaderProps) {`,
+    `export default function Header({
+  user,
+  onLoginClick,
+  onOpenAddModal,
+  totalAgents,
+  checkingSession = false
+}: HeaderProps) {`,
+    "replace"
+  );
+
+  // 3. Скрываем кнопку входа на мобилках во время проверки сессии
+  replaceAtAnchor(
+    'src/components/Header.tsx',
+    `{!user && (
+              <button
+                onClick={onLoginClick}
+                className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
+              >
+                {t("headerLogin")}
+              </button>
+            )}`,
+    `{!checkingSession && !user && (
+              <button
+                onClick={onLoginClick}
+                className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
+              >
+                {t("headerLogin")}
+              </button>
+            )}`,
+    "replace"
+  );
+
+
+  // --- Шаг 3: Правки в src/components/Sidebar.tsx ---
+
+  // 1. Добавляем checkingSession в SidebarProps интерфейс
+  replaceAtAnchor(
+    'src/components/Sidebar.tsx',
+    `interface SidebarProps {
+  activeCategory: string;
+  setActiveCategory: (category: string) => void;
+  user: { id: string; username: string; bio: string; avatar: string } | null;
+  totalPromptsCount: number;
+  onSettingsClick?: () => void;
+  onLogoutClick?: () => void;
+}`,
+    `interface SidebarProps {
+  activeCategory: string;
+  setActiveCategory: (category: string) => void;
+  user: { id: string; username: string; bio: string; avatar: string } | null;
+  totalPromptsCount: number;
+  onSettingsClick?: () => void;
+  onLogoutClick?: () => void;
+  checkingSession?: boolean;
+}`,
+    "replace"
+  );
+
+  // 2. Деструктурируем checkingSession в Sidebar компоненте
+  replaceAtAnchor(
+    'src/components/Sidebar.tsx',
+    `export default function Sidebar({
+  activeCategory,
+  setActiveCategory,
+  user,
+  totalPromptsCount,
+  onSettingsClick,
+  onLogoutClick
+}: SidebarProps) {`,
+    `export default function Sidebar({
+  activeCategory,
+  setActiveCategory,
+  user,
+  totalPromptsCount,
+  onSettingsClick,
+  onLogoutClick,
+  checkingSession = false
+}: SidebarProps) {`,
+    "replace"
+  );
+
+  // 3. Добавляем Skeleton Loader во время загрузки сессии профиля
+  replaceAtAnchor(
+    'src/components/Sidebar.tsx',
+    `<h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">{t("sidebarProfile")}</h3>
+        {user ? (`,
+    `<h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">{t("sidebarProfile")}</h3>
+        {checkingSession ? (
+          <div className="animate-pulse flex flex-col gap-3 relative z-10">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-slate-800" />
+              <div className="h-4 bg-slate-800 rounded w-24" />
+            </div>
+            <div className="h-3 bg-slate-800 rounded w-full" />
+            <div className="h-3 bg-slate-800 rounded w-4/5" />
+          </div>
+        ) : user ? (`,
+    "replace"
+  );
 
   // Обновление дампа
   createDump();
