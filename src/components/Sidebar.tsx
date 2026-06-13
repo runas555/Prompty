@@ -1,14 +1,15 @@
 import React from "react";
-import { 
-  Layers, Code, PenTool, Image, Music, Laptop, 
+import {Layers, Code, PenTool, Image, Music, Laptop, 
   BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
-  CheckSquare, HelpCircle 
-} from "lucide-react";
+  CheckSquare, HelpCircle, Settings, LogOut} from "lucide-react";
 
 interface SidebarProps {
   activeCategory: string;
   setActiveCategory: (category: string) => void;
-  user: { id: string; username: string; bio: string; avatar: string } | null;
+  user: { id: string; username: string; bio: string; avatar: string 
+  onSettingsClick?: () => void;
+  onLogoutClick?: () => void;
+} | null;
   totalPromptsCount: number;
 }
 
@@ -29,10 +30,12 @@ export const CATEGORIES = [
 ];
 
 export default function Sidebar({
-  activeCategory,
+activeCategory,
   setActiveCategory,
   user,
-  totalPromptsCount
+  totalPromptsCount,
+  onSettingsClick,
+  onLogoutClick
 }: SidebarProps) {
   return (
     <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
@@ -58,6 +61,35 @@ export default function Sidebar({
             <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
               {user.bio || "Биография не указана. Заполните её в настройках."}
             </p>
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60 relative z-10">
+              <button
+                type="button"
+                onClick={onSettingsClick}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-all active:scale-95"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Настройки
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onLogoutClick) {
+                    onLogoutClick();
+                  } else {
+                    try {
+                      await fetch("/api/auth/logout", { method: "POST" });
+                      window.location.reload();
+                    } catch (err) {
+                      console.error("Ошибка при выходе из системы:", err);
+                    }
+                  }
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-red-400 transition-all active:scale-95 ml-auto"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Выйти
+              </button>
+            </div>
           </div>
         ) : (
           <p className="text-xs text-slate-400 relative z-10 leading-relaxed">

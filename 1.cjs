@@ -1,62 +1,58 @@
 const fs = require('fs');
 const path = require('path');
 
-const pageFilePath = path.join(__dirname, 'src', 'app', 'page.tsx');
-const backupsDir = path.join(__dirname, '.setup_backups');
+const pagePath = path.join(__dirname, 'src/app/page.tsx');
 
-function applyPatch() {
-  console.log('Начало процесса исправления типизации...');
-
-  // 1. Проверка наличия файла
-  if (!fs.existsSync(pageFilePath)) {
-    console.error('[ОШИБКА] Файл src/app/page.tsx не найден.');
+function repairAndPatch() {
+  if (!fs.existsSync(pagePath)) {
+    console.log('[ОШИБКА] Файл src/app/page.tsx не найден');
     return;
   }
 
-  try {
-    const originalContent = fs.readFileSync(pageFilePath, 'utf8');
+  let content = fs.readFileSync(pagePath, 'utf8');
 
-    // Проверяем, не было ли изменение внесено ранее
-    if (originalContent.includes('setUser({ ...userData, bio: "", avatar: "" })')) {
-      console.log('[ПРОПУЩЕНО] Исправление типизации уже применено.');
-      return;
-    }
+  // Шаг 1. Очистка от возможных прошлых некорректных вставок вне тегов
+  // Находим и удаляем ошибочные строки вида "onSettingsClick={() => ...}"
+  const corruptedLineRegex = /\s*onSettingsClick\s*=\s*\{\s*\(\s*\)\s*=>\s*[a-zA-Z0-9_]+\(true\)\s*\}\s*(?!\s*[a-zA-Z0-9_]+\s*=)/g;
+  if (corruptedLineRegex.test(content)) {
+    content = content.replace(corruptedLineRegex, '');
+    console.log('[ОЧИСТКА] Некорректно размещенный код в page.tsx успешно удален');
+  }
 
-    // 2. Создание резервной копии
-    if (!fs.existsSync(backupsDir)) {
-      fs.mkdirSync(backupsDir, { recursive: true });
-    }
-    const timestamp = Date.now();
-    const backupPath = path.join(backupsDir, `page.tsx.${timestamp}.bak`);
-    fs.writeFileSync(backupPath, originalContent, 'utf8');
-    console.log(`[УСПЕШНО] Создана резервная копия: .setup_backups/page.tsx.${timestamp}.bak`);
+  // Шаг 2. Поиск переменной состояния модального окна профиля
+  const profileModalMatch = content.match(/<ProfileModal[^>]*isOpen\s*=\s*\{\s*([a-zA-Z0-9_]+)\s*\}/s);
+  if (!profileModalMatch) {
+    console.log('[ПРОПУЩЕНО] Компонент <ProfileModal не найден в page.tsx. Автоматическая привязка не требуется.');
+    fs.writeFileSync(pagePath, content, 'utf8');
+    return;
+  }
 
-    // 3. Замена с помощью регулярного выражения
-    // Ищет onSuccess={(userData) => { ... setUser(userData);
-    const regex = /onSuccess\s*=\s*{\s*\(\s*userData\s*\)\s*=>\s*{\s*setUser\s*\(\s*userData\s*\)\s*;/g;
+  const stateVar = profileModalMatch[1];
+  const setterName = 'set' + stateVar.charAt(0).toUpperCase() + stateVar.slice(1);
 
-    if (regex.test(originalContent)) {
-      const updatedContent = originalContent.replace(
-        regex, 
-        'onSuccess={(userData) => {\n          setUser({ ...userData, bio: "", avatar: "" });'
-      );
-      fs.writeFileSync(pageFilePath, updatedContent, 'utf8');
-      console.log('[УСПЕШНО] Типизация onSuccess в src/app/page.tsx обновлена.');
-    } else {
-      // Запасной более прямой вариант поиска, если форматирование сильно отличается
-      const targetStr = 'setUser(userData);';
-      if (originalContent.includes(targetStr) && originalContent.includes('onSuccess={(userData) => {')) {
-        const updatedContent = originalContent.replace(targetStr, 'setUser({ ...userData, bio: "", avatar: "" });');
-        fs.writeFileSync(pageFilePath, updatedContent, 'utf8');
-        console.log('[УСПЕШНО] Применен альтернативный вариант замены.');
-      } else {
-        console.error('[ОШИБКА] Не удалось надежно найти целевой блок для автозамены в файле.');
-      }
-    }
+  if (!content.includes(setterName)) {
+    console.log(`[ПРОПУЩЕНО] Сетер ${setterName} не найден в page.tsx`);
+    fs.writeFileSync(pagePath, content, 'utf8');
+    return;
+  }
 
-  } catch (error) {
-    console.error('[КРИТИЧЕСКАЯ ОШИБКА] Не удалось применить патч:', error.message);
+  // Шаг 3. Чистая и безопасная вставка пропса внутрь тега <Sidebar
+  // Проверяем, нет ли уже корректной вставки внутри тега
+  const hasCorrectProp = new RegExp(`<Sidebar[^>]*onSettingsClick\\s*=\\s*\\{\\s*\\(\\s*\\)\\s*=>\\s*${setterName}\\(true\\)\\s*\\}`, 's').test(content);
+
+  if (!hasCorrectProp) {
+    // Безопасно вставляем пропс сразу после открывающего слова "<Sidebar"
+    content = content.replace(/<Sidebar(\s+)/, `<Sidebar onSettingsClick={() => ${setterName}(true)}$1`);
+    fs.writeFileSync(pagePath, content, 'utf8');
+    console.log('[УСПЕШНО] src/app/page.tsx успешно восстановлен и корректно пропатчен!');
+  } else {
+    fs.writeFileSync(pagePath, content, 'utf8');
+    console.log('[ИНФО] page.tsx уже содержит корректный пропс внутри тега <Sidebar');
   }
 }
 
-applyPatch();
+try {
+  repairAndPatch();
+} catch (error) {
+  console.error('[КРИТИЧЕСКАЯ ОШИБКА]:', error.message);
+}

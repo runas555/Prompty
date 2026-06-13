@@ -258,7 +258,7 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
-        <Sidebar
+        <Sidebar onSettingsClick={() => setIsProfileOpen(true)}
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
           user={user}
