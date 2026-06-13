@@ -9,6 +9,7 @@ import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
 import ProfileModal from "@/components/ProfileModal";
+import PublicProfileModal from "@/components/PublicProfileModal";
 import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
 export default function Home() {
@@ -47,6 +48,8 @@ export default function Home() {
 
   // Модальные окна
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isPublicProfileOpen, setIsPublicProfileOpen] = useState(false);
+  const [activeProfile, setActiveProfile] = useState<{ username: string; bio: string; avatar: string } | null>(null);
   const [isPostOpen, setIsPostOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -257,6 +260,11 @@ export default function Home() {
     }
   };
 
+  const handleOpenPublicProfile = (username: string, bio: string, avatar: string) => {
+    setActiveProfile({ username, bio, avatar });
+    setIsPublicProfileOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 pb-20 md:pb-0">
       <Header
@@ -396,6 +404,7 @@ export default function Home() {
                     }}
                     onDelete={handleDeleteAgent}
                     onLikeToggle={handleLikeToggle}
+                    onOpenProfile={handleOpenPublicProfile}
                   />
                 ))}
               </div>
@@ -600,6 +609,7 @@ export default function Home() {
           setIsDetailOpen(false);
           setIsAuthOpen(true);
         }}
+        onOpenProfile={handleOpenPublicProfile}
       />
 
       <ProfileModal
@@ -608,6 +618,22 @@ export default function Home() {
         onSave={handleSaveProfile}
         currentBio={user ? user.bio : ""}
         currentAvatar={user ? user.avatar : ""}
+      />
+
+      <PublicProfileModal
+        isOpen={isPublicProfileOpen}
+        onClose={() => {
+          setIsPublicProfileOpen(false);
+          setActiveProfile(null);
+        }}
+        username={activeProfile ? activeProfile.username : ""}
+        bio={activeProfile ? activeProfile.bio : ""}
+        avatar={activeProfile ? activeProfile.avatar : ""}
+        authorAgents={agents.filter(a => a.username === (activeProfile ? activeProfile.username : ""))}
+        onOpenAgent={(a) => {
+          setActiveAgent(a);
+          setIsDetailOpen(true);
+        }}
       />
     </div>
   );

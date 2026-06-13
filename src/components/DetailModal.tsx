@@ -26,6 +26,7 @@ interface DetailModalProps {
   currentUser: { id: string; username: string } | null;
   onRestore: (promptText: string) => Promise<boolean>;
   onTriggerLogin: () => void;
+  onOpenProfile?: (username: string, bio: string, avatar: string) => void;
 }
 
 export default function DetailModal({
@@ -163,7 +164,14 @@ export default function DetailModal({
       <div className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative">
         {/* Шапка */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition-all"
+            onClick={() => {
+              if (onOpenProfile && agent) {
+                onOpenProfile(agent.username, agent.userBio, agent.avatar);
+              }
+            }}
+          >
             <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr ${getUserGradient(agent.username)} flex items-center justify-center text-[10px] text-slate-950 font-bold uppercase shrink-0`}>
               {agent.username.slice(0, 2)}
             </div>
@@ -328,7 +336,15 @@ export default function DetailModal({
                   <p className="text-center text-xs text-slate-500">{t("detailNoComments")}</p>
                 ) : (
                   comments.map(comm => (
-                    <div key={comm.id} className="flex gap-3 bg-slate-900/20 border border-slate-850 p-4 rounded-xl items-start">
+                    <div 
+                      key={comm.id} 
+                      className="flex gap-3 bg-slate-900/20 border border-slate-850 p-4 rounded-xl items-start cursor-pointer hover:border-slate-800 transition-colors"
+                      onClick={() => {
+                        if (onOpenProfile) {
+                          onOpenProfile(comm.username, "", "");
+                        }
+                      }}
+                    >
                       <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr ${getUserGradient(comm.username)} flex items-center justify-center text-[10px] text-slate-950 font-extrabold uppercase shrink-0`}>
                         {comm.username.slice(0, 2)}
                       </div>

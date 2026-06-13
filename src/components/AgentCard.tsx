@@ -29,6 +29,7 @@ interface AgentCardProps {
   onOpenHistory: (agent: Agent) => void;
   onDelete: (agentId: string) => void;
   onLikeToggle: (agentId: string, currentLikeStatus: boolean) => void;
+  onOpenProfile?: (username: string, bio: string, avatar: string) => void;
   highlightText?: string;
 }
 
@@ -48,6 +49,7 @@ export default function AgentCard({
   onOpenHistory,
   onDelete,
   onLikeToggle,
+  onOpenProfile,
   highlightText = ""
 }: AgentCardProps) {
   const { t, language } = useLanguage();
@@ -107,7 +109,15 @@ export default function AgentCard({
         <meta itemProp="datePublished" content={new Date(agent.createdAt).toISOString()} />
         <div>
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div 
+              className="flex items-center gap-2 min-w-0 hover:opacity-85 transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenProfile) {
+                  onOpenProfile(agent.username, agent.userBio, agent.avatar);
+                }
+              }}
+            >
               {/* Рендерим загруженное фото или градиентную заглушку */}
               {agent.avatar ? (
                 <img 
