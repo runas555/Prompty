@@ -1,67 +1,49 @@
 const fs = require('fs');
 const path = require('path');
 
-const cardPath = path.join(__dirname, 'src/components/AgentCard.tsx');
+const pagePath = path.join(__dirname, 'src/app/page.tsx');
 
-function applySEOPatch() {
-  if (!fs.existsSync(cardPath)) {
-    console.log('[ОШИБКА] Файл AgentCard.tsx не найден');
+function removeModelFilter() {
+  if (!fs.existsSync(pagePath)) {
+    console.log('[ОШИБКА] Файл src/app/page.tsx не найден');
     return;
   }
 
-  let content = fs.readFileSync(cardPath, 'utf8');
+  let content = fs.readFileSync(pagePath, 'utf8');
 
-  // Избегаем повторного применения
-  if (content.includes('itemProp="name"')) {
-    console.log('[ПРОПУЩЕНО] SEO-разметка уже присутствует в AgentCard.tsx');
-    return;
+  console.log('Начало удаления фильтра моделей...');
+
+  // 1. Удаление константы MODELS
+  const modelsConstRegex = /const\s+MODELS\s*=\s*\[[\s\S]*?\];/;
+  if (modelsConstRegex.test(content)) {
+    content = content.replace(modelsConstRegex, '');
+    console.log('[УСПЕШНО] Константа MODELS удалена');
   }
 
-  console.log('Начало внедрения семантической разметки...');
-
-  // 1. Замена корневого div на article с указанием схемы CreativeWork
-  // Ищем начало блока div, который имеет onClick и специфические классы
-  const rootDivRegex = /<div\s+onClick=\{\(\)\s*=>\s*onOpenHistory\(agent\)\}\s+className="([^"]*)"\s*>/;
-  content = content.replace(rootDivRegex, (match, classes) => {
-    return `<article 
-      itemScope 
-      itemType="https://schema.org/CreativeWork" 
-      onClick={() => onOpenHistory(agent)} 
-      className="${classes}"
-    >`;
-  });
-
-  // Заменяем закрывающий тег в самом конце функции (перед последней скобкой return)
-  // Мы ищем последнюю комбинацию </div> перед последним );
-  const lastDivRegex = /<\/div>\s*(\s*\);\s*\})/;
-  content = content.replace(lastDivRegex, '</article>$1');
-
-  // 2. Разметка автора
-  const authorRegex = /<span\s+className="text-xs font-bold text-slate-300 truncate">(@\{agent\.username\})<\/span>/;
-  content = content.replace(authorRegex, '<span itemProp="author" className="text-xs font-bold text-slate-300 truncate">$1</span>');
-
-  // 3. Разметка названия промпта (Заголовок)
-  const titleRegex = /<h3\s+className="([^"]+)">/;
-  content = content.replace(titleRegex, '<h3 itemProp="name" className="$1">');
-
-  // 4. Разметка текста промпта
-  const promptRegex = /<p\s+className="whitespace-pre-wrap select-text">(\{highlight\(agent\.prompt, highlightText\)\})<\/p>/;
-  content = content.replace(promptRegex, '<p itemProp="text" className="whitespace-pre-wrap select-text">$1</p>');
-
-  // 5. Добавление скрытых мета-данных для роботов (Дата публикации)
-  const metaDateAnchor = '<div className="relative z-10 flex flex-col h-full justify-between">';
-  if (content.includes(metaDateAnchor)) {
-    content = content.replace(metaDateAnchor, metaDateAnchor + `
-        <meta itemProp="datePublished" content={new Date(agent.createdAt).toISOString()} />`);
+  // 2. Удаление блока фильтра в Desktop версии
+  // Ищем контейнер с MODELS.map внутри десктопной части
+  const desktopFilterRegex = /<div className="flex items-center gap-1\.5 overflow-x-auto pb-1 -mt-1 select-none hide-scrollbar">[\s\S]*?\{MODELS\.map[\s\S]*?<\/div>/;
+  if (desktopFilterRegex.test(content)) {
+    content = content.replace(desktopFilterRegex, '');
+    console.log('[УСПЕШНО] Фильтр удален из десктопной версии');
   }
+
+  // 3. Удаление блока фильтра в Mobile версии (вкладка поиска)
+  const mobileFilterRegex = /<div className="flex items-center gap-1\.5 overflow-x-auto pb-2 select-none hide-scrollbar">[\s\S]*?\{MODELS\.map[\s\S]*?<\/div>/;
+  if (mobileFilterRegex.test(content)) {
+    content = content.replace(mobileFilterRegex, '');
+    console.log('[УСПЕШНО] Фильтр удален из мобильной версии');
+  }
+
+  // 4. Очистка лишних пустых строк, которые могли остаться после удаления
+  content = content.replace(/\n\s*\n\s*\n/g, '\n\n');
 
   try {
-    fs.writeFileSync(cardPath, content, 'utf8');
-    console.log('[УСПЕШНО] AgentCard.tsx теперь использует семантическую разметку (article + Schema.org)');
-    console.log('[ИНФО] Поисковики теперь будут видеть карточки как самостоятельные публикации.');
+    fs.writeFileSync(pagePath, content, 'utf8');
+    console.log('[ЗАВЕРШЕНО] Файл page.tsx успешно очищен от фильтра моделей.');
   } catch (err) {
-    console.error('[ОШИБКА] Не удалось сохранить изменения:', err.message);
+    console.error('[ОШИБКА] Не удалось сохранить файл:', err.message);
   }
 }
 
-applySEOPatch();
+removeModelFilter();

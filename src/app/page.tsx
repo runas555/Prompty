@@ -10,16 +10,6 @@ import PostModal from "@/components/PostModal";
 import ProfileModal from "@/components/ProfileModal";
 import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
-const MODELS = [
-  { id: "all", label: "Все ИИ модели" },
-  { id: "any", label: "Универсальные" },
-  { id: "gpt4", label: "GPT-4 / 4o" },
-  { id: "claude", label: "Claude 3.5" },
-  { id: "gemini", label: "Gemini" },
-  { id: "llama", label: "LLaMA / DeepSeek" },
-  { id: "midjourney", label: "Midjourney" }
-];
-
 export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -310,24 +300,6 @@ export default function Home() {
               </div>
             )}
 
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-1 select-none hide-scrollbar">
-              {MODELS.map(m => {
-                const isActive = activeModel === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setActiveModel(m.id)}
-                    className={"text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold " + (
-                      isActive 
-                        ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
-                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200"
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* ================= MOBILE VIEW CONTEXTUAL LAYOUT ================= */}
@@ -448,25 +420,6 @@ export default function Home() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 select-none hide-scrollbar">
-              {MODELS.map(m => {
-                const isActive = activeModel === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setActiveModel(m.id)}
-                    className={`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold ${
-                      isActive 
-                        ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
-                        : "bg-slate-900/40 border-slate-800/80 text-slate-400"
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                );
-              })}
             </div>
 
             <button
