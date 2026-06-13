@@ -169,7 +169,7 @@ export default function DetailModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-100 truncate max-w-lg">{getLocalizedName(agent.name, language)}</h2>
-              <p className="text-xs text-slate-500">Автор: @{agent.username} &bull; Версия v{agent.version}</p>
+              <p className="text-xs text-slate-500">{t("detailAuthor")}: @{agent.username} &bull; {t("detailVersion")} v{agent.version}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg hover:bg-slate-800 transition-all">

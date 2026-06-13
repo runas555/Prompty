@@ -2,6 +2,56 @@
 const fs = require('fs');
 const path = require('path');
 
+// Помощник для экранирования регулярных выражений
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Поиск и точечная замена блоков с игнорированием пробелов и переносов строк
+function replaceAtAnchor(filePath, anchor, replacement, mode = "replace") {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.log(`[FAIL] Файл не найден: ${filePath}`);
+      return false;
+    }
+    let fileContent = fs.readFileSync(filePath, 'utf8');
+
+    const tokens = anchor.split(/(\s+)/);
+    let regexPattern = "";
+    for (const token of tokens) {
+      if (/\s+/.test(token)) {
+        regexPattern += "\\s*";
+      } else if (token) {
+        regexPattern += escapeRegExp(token);
+      }
+    }
+    const regex = new RegExp(regexPattern, 'i');
+
+    const match = fileContent.match(regex);
+    if (!match) {
+      console.log(`[FAIL] Не найден якорь в ${filePath}: "${anchor.trim().substring(0, 60)}..."`);
+      return false;
+    }
+
+    const matchedString = match[0];
+    let newContent;
+    if (mode === "replace") {
+      newContent = fileContent.replace(regex, replacement);
+    } else if (mode === "after") {
+      newContent = fileContent.replace(regex, matchedString + "\n" + replacement);
+    } else if (mode === "before") {
+      newContent = fileContent.replace(regex, replacement + "\n" + matchedString);
+    }
+
+    fs.writeFileSync(filePath, newContent, 'utf8');
+    console.log(`[SUCCESS] Успешная замена в: ${filePath}`);
+    return true;
+  } catch (err) {
+    console.log(`[ERROR] Ошибка модификации ${filePath}: ${err.message}`);
+    return false;
+  }
+}
+
 // Функция создания дампа dump.txt
 function createDump() {
   console.log("=== Создание/Обновление dump.txt ===");
@@ -37,8 +87,9 @@ function createDump() {
 }
 
 function main() {
-  console.log("=== Обновление src/lib/i18n.tsx: автоопределение языка системы ===");
+  console.log("=== Локализация слов 'Автор' и 'Версия' в DetailModal.tsx ===");
 
+  // Шаг 1: Обновление src/lib/i18n.tsx с новыми ключами detailAuthor и detailVersion
   const i18nPath = path.join(process.cwd(), 'src', 'lib', 'i18n.tsx');
   const i18nContent = `"use client";
 
@@ -121,6 +172,8 @@ export const translations = {
     detailInstruction: "Инструкция",
     detailHistory: "История версий",
     detailDiscussion: "Обсуждение",
+    detailAuthor: "Автор",
+    detailVersion: "Версия",
     detailCurrentPrompt: "Текущий системный промпт",
     detailCopyPrompt: "Скопировать промпт",
     detailCopied: "Скопировано!",
@@ -227,6 +280,8 @@ export const translations = {
     detailInstruction: "Instruction",
     detailHistory: "Version History",
     detailDiscussion: "Discussion",
+    detailAuthor: "Author",
+    detailVersion: "Version",
     detailCurrentPrompt: "Current System Prompt",
     detailCopyPrompt: "Copy prompt",
     detailCopied: "Copied!",
@@ -335,6 +390,12 @@ export function getLocalizedName(fullName: string, language: "ru" | "en"): strin
   } catch (err) {
     console.log(`[ERROR] Ошибка записи i18n.tsx: ${err.message}`);
   }
+
+  // Шаг 2: Модификация вывода "Автор" и "Версия" в DetailModal.tsx
+  const targetLabelLine = `<p className="text-xs text-slate-500">Автор: @{agent.username} &bull; Версия v{agent.version}</p>`;
+  const fixedLabelLine = `<p className="text-xs text-slate-500">{t("detailAuthor")}: @{agent.username} &bull; {t("detailVersion")} v{agent.version}</p>`;
+
+  replaceAtAnchor('src/components/DetailModal.tsx', targetLabelLine, fixedLabelLine, "replace");
 
   // Обновление дампа
   createDump();
