@@ -35,7 +35,8 @@ export default function DetailModal({
   agent,
   currentUser,
   onRestore,
-  onTriggerLogin
+  onTriggerLogin,
+  onOpenProfile
 }: DetailModalProps) {
   const { t, language } = useLanguage();
   const [tab, setTab] = useState<"read" | "versions" | "comments">("read");

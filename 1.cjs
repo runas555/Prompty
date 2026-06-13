@@ -68,7 +68,8 @@ function createDump() {
       'src/components/AuthModal.tsx',
       'src/components/DetailModal.tsx',
       'src/components/ProfileModal.tsx',
-      'src/components/PublicProfileModal.tsx'
+      'src/components/PublicProfileModal.tsx',
+      'README.md'
     ];
 
     let dumpContent = "";
@@ -88,30 +89,28 @@ function createDump() {
 }
 
 function main() {
-  console.log("=== Исправление деструктуризации onOpenProfile в AgentCard.tsx ===");
+  console.log("=== Исправление деструктуризации onOpenProfile в DetailModal.tsx ===");
 
-  const targetDestructuring = `export default function AgentCard({
+  const targetDestructuring = `export default function DetailModal({
+  isOpen,
+  onClose,
   agent,
   currentUser,
-  onEdit,
-  onOpenHistory,
-  onDelete,
-  onLikeToggle,
-  highlightText = ""
-}: AgentCardProps) {`;
+  onRestore,
+  onTriggerLogin
+}: DetailModalProps) {`;
 
-  const fixedDestructuring = `export default function AgentCard({
+  const fixedDestructuring = `export default function DetailModal({
+  isOpen,
+  onClose,
   agent,
   currentUser,
-  onEdit,
-  onOpenHistory,
-  onDelete,
-  onLikeToggle,
-  onOpenProfile,
-  highlightText = ""
-}: AgentCardProps) {`;
+  onRestore,
+  onTriggerLogin,
+  onOpenProfile
+}: DetailModalProps) {`;
 
-  replaceAtAnchor('src/components/AgentCard.tsx', targetDestructuring, fixedDestructuring, "replace");
+  replaceAtAnchor('src/components/DetailModal.tsx', targetDestructuring, fixedDestructuring, "replace");
 
   // Обновление дампа
   createDump();
