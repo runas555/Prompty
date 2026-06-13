@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/i18n";
 import Header from "@/components/Header";
 import Sidebar, { CATEGORIES } from "@/components/Sidebar";
 import AgentCard, { Agent } from "@/components/AgentCard";
@@ -11,6 +12,22 @@ import ProfileModal from "@/components/ProfileModal";
 import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
 export default function Home() {
+  const { t } = useLanguage();
+  const catLabelMap = {
+    all: "catAll",
+    coding: "catCoding",
+    writing: "catWriting",
+    art: "catArt",
+    "audio-video": "catAudioVideo",
+    assistant: "catAssistant",
+    marketing: "catMarketing",
+    education: "catEducation",
+    agents: "catAgents",
+    security: "catSecurity",
+    creative: "catCreative",
+    productivity: "catProductivity",
+    other: "catOther"
+  };
   const [agents, setAgents] = useState<Agent[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeModel, setActiveModel] = useState("all");
@@ -79,17 +96,17 @@ export default function Home() {
         setAgents(data);
       } else {
         const errData = await res.json();
-        setError(errData.error || "Ошибка загрузки ленты");
+        setError(errData.error || t("errorFeedLoad"));
       }
     } catch (err) {
-      setError("Не удалось соединиться с сервером базы данных.");
+      setError(t("errorServerConnect"));
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    if (!confirm("Выйти из аккаунта?")) return;
+    if (!confirm(t("confirmLogout"))) return;
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
@@ -157,14 +174,14 @@ export default function Home() {
   };
 
   const handleDeleteAgent = async (agentId: string) => {
-    if (!confirm("Вы уверены, что хотите удалить публикацию?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       const res = await fetch(`/api/agents/${agentId}`, { method: "DELETE" });
       if (res.ok) {
         setAgents(agents.filter(a => a.id !== agentId));
       } else {
         const errData = await res.json();
-        alert(errData.error || "Ошибка удаления");
+        alert(errData.error || t("errorDelete"));
       }
     } catch (err) {
       console.error(err);
@@ -263,7 +280,7 @@ export default function Home() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
               <input
                 type="text"
-                placeholder="Поиск по задачам, тегам (#seo, #react) или авторам..."
+                placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
@@ -279,7 +296,7 @@ export default function Home() {
                     feedMode === "all" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
                   }`}
                 >
-                  Все публикации
+                  {t("tabAllPublications")}
                 </button>
                 <button
                   onClick={() => setFeedMode("my")}
@@ -287,7 +304,7 @@ export default function Home() {
                     feedMode === "my" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
                   }`}
                 >
-                  Мои промпты
+                  {t("tabMyPrompts")}
                 </button>
                 <button
                   onClick={() => setFeedMode("liked")}
@@ -295,7 +312,7 @@ export default function Home() {
                     feedMode === "liked" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
                   }`}
                 >
-                  Мне понравилось
+                  {t("tabLiked")}
                 </button>
               </div>
             )}
@@ -322,7 +339,7 @@ export default function Home() {
                     feedMode === "all" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
                   }`}
                 >
-                  Все посты
+                  {t("tabAllPostsMobile")}
                 </button>
                 <button
                   onClick={() => setFeedMode("my")}
@@ -330,7 +347,7 @@ export default function Home() {
                     feedMode === "my" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
                   }`}
                 >
-                  Мои промпты
+                  {t("tabMyPrompts")}
                 </button>
                 <button
                   onClick={() => setFeedMode("liked")}
@@ -338,7 +355,7 @@ export default function Home() {
                     feedMode === "liked" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
                   }`}
                 >
-                  Избранное
+                  {t("tabFavoritesMobile")}
                 </button>
               </div>
             )}
@@ -354,8 +371,8 @@ export default function Home() {
                 <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
                   <Terminal className="h-7 w-7 stroke-[1.5]" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-200">Ничего не найдено</h3>
-                <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой вкладке!</p>
+                <h3 className="text-lg font-bold text-slate-200">{t("notFoundTitle")}</h3>
+                <p className="text-sm text-slate-500 mt-1">{t("notFoundDesc")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -383,7 +400,7 @@ export default function Home() {
 
           {/* Вкладка 2: Выбор категорий (мобильные) */}
           <div className={`md:hidden bg-slate-900/40 border border-slate-800 rounded-2xl p-5 glass ${mobileTab === "categories" ? "block" : "hidden"}`}>
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">Выберите категорию</h3>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">{t("sidebarCategories")}</h3>
             <div className="grid grid-cols-1 gap-2">
               {CATEGORIES.map(cat => {
                 const Icon = cat.icon;
@@ -402,7 +419,7 @@ export default function Home() {
                     }`}
                   >
                     <Icon className="h-5 w-5 text-slate-400 shrink-0" />
-                    <span>{cat.label}</span>
+                    <span>{t(catLabelMap[cat.id] || cat.id)}</span>
                   </button>
                 );
               })}
@@ -415,7 +432,7 @@ export default function Home() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
               <input
                 type="text"
-                placeholder="Поиск по тегам, задачам или авторам..."
+                placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
@@ -426,7 +443,7 @@ export default function Home() {
               onClick={() => setMobileTab("feed")}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold text-sm"
             >
-              Перейти к результатам ({filteredAgents.length})
+              {t("tabAllPostsMobile")} ({filteredAgents.length})
             </button>
           </div>
 
@@ -453,7 +470,7 @@ export default function Home() {
                 </div>
 
                 <p className="text-xs text-slate-400 italic leading-relaxed break-words bg-slate-950/40 p-3 rounded-xl border border-slate-850">
-                  {user.bio || "Биография не указана."}
+                  {user.bio || t("profileBioEmpty")}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 mt-2">
@@ -462,25 +479,25 @@ export default function Home() {
                     className="flex items-center justify-center gap-2 bg-slate-800 text-slate-300 py-3 rounded-xl text-xs font-bold border border-slate-700"
                   >
                     <Settings className="h-4 w-4" />
-                    Настройки
+                    {t("sidebarSettings")}
                   </button>
                   <button
                     onClick={handleLogout}
                     className="flex items-center justify-center gap-2 bg-red-950/20 text-red-400 py-3 rounded-xl text-xs font-bold border border-red-900/40"
                   >
                     <LogOut className="h-4 w-4" />
-                    Выйти
+                    {t("sidebarLogout")}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 text-center glass">
-                <p className="text-sm text-slate-400 mb-4">Войдите в личный профиль для публикации и оценки промптов.</p>
+                <p className="text-sm text-slate-400 mb-4">{t("sidebarAuthPrompt")}</p>
                 <button
                   onClick={() => setIsAuthOpen(true)}
                   className="bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm"
                 >
-                  Авторизоваться
+                  {t("headerLogin")}
                 </button>
               </div>
             )}
@@ -499,7 +516,7 @@ export default function Home() {
             }`}
           >
             <Terminal className="h-5 w-5" />
-            <span>Лента</span>
+            <span>{t("mobileTabFeed")}</span>
           </button>
 
           <button
@@ -509,7 +526,7 @@ export default function Home() {
             }`}
           >
             <Compass className="h-5 w-5" />
-            <span>Разделы</span>
+            <span>{t("mobileTabCategories")}</span>
           </button>
 
           {user && (
@@ -528,7 +545,7 @@ export default function Home() {
             }`}
           >
             <Search className="h-5 w-5" />
-            <span>Поиск</span>
+            <span>{t("mobileTabSearch")}</span>
           </button>
 
           <button
@@ -538,7 +555,7 @@ export default function Home() {
             }`}
           >
             <User className="h-5 w-5" />
-            <span>Кабинет</span>
+            <span>{t("mobileTabProfile")}</span>
           </button>
         </div>
       </div>

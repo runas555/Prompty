@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "@/lib/i18n";
 import { X, User, Lock, AlertCircle, Terminal, Eye, EyeOff } from "lucide-react";
 
 interface AuthModalProps {
@@ -8,6 +9,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +22,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError("Пожалуйста, заполните все поля");
+      setError(t("authFillAll"));
       return;
     }
 
@@ -42,15 +44,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           onSuccess(data.user);
           onClose();
         } else {
-          alert("Аккаунт успешно создан! Теперь вы можете войти.");
+          alert(t("authSuccessReg"));
           setMode("login");
           setPassword("");
         }
       } else {
-        setError(data.error || "Произошла ошибка авторизации");
+        setError(data.error || t("authError"));
       }
     } catch (err) {
-      setError("Ошибка сети. Попробуйте еще раз.");
+      setError(t("authNetworkError"));
     } finally {
       setLoading(false);
     }
@@ -70,10 +72,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             <Terminal className="h-6 w-6 stroke-[2.5]" />
           </div>
           <h2 className="text-xl font-bold text-slate-100">
-            {mode === "login" ? "Вход в систему" : "Регистрация"}
+            {mode === "login" ? t("authLoginTitle") : t("authRegisterTitle")}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Для создания и изменения собственных промптов
+            {t("authSub")}
           </p>
         </div>
 
@@ -87,13 +89,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
           <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Имя пользователя
+              {t("authUsernameLabel")}
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="Никнейм"
+                placeholder={t("authUsernamePlaceholder")}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
@@ -104,7 +106,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
           <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Пароль
+              {t("authPasswordLabel")}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -132,23 +134,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             disabled={loading}
             className="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all duration-200"
           >
-            {loading ? "Загрузка..." : mode === "login" ? "Войти" : "Зарегистрироваться"}
+            {loading ? "..." : mode === "login" ? t("authSubmitLogin") : t("authSubmitRegister")}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs">
           {mode === "login" ? (
             <p className="text-slate-500">
-              Еще нет аккаунта?{" "}
+              {t("authNoAccount")}{" "}
               <button onClick={() => { setMode("register"); setError(""); }} className="text-cyan-400 font-semibold hover:underline">
-                Создать профиль
+                {t("authCreateProfile")}
               </button>
             </p>
           ) : (
             <p className="text-slate-500">
-              Уже есть аккаунт?{" "}
+              {t("authHaveAccount")}{" "}
               <button onClick={() => { setMode("login"); setError(""); }} className="text-cyan-400 font-semibold hover:underline">
-                Войти
+                {t("authSubmitLogin")}
               </button>
             </p>
           )}

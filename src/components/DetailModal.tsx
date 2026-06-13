@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/i18n";
 import { X, History, MessageSquare, Copy, Check, Clock, Send, Sparkles } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 import { Agent } from "./AgentCard";
@@ -35,6 +36,7 @@ export default function DetailModal({
   onRestore,
   onTriggerLogin
 }: DetailModalProps) {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<"read" | "versions" | "comments">("read");
   const [versions, setVersions] = useState<Version[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -183,7 +185,7 @@ export default function DetailModal({
               tab === "read" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            Инструкция
+            {t("detailInstruction")}
           </button>
           <button
             onClick={() => setTab("versions")}
@@ -191,7 +193,7 @@ export default function DetailModal({
               tab === "versions" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            История версий ({versions.length})
+            {t("detailHistory")} ({versions.length})
           </button>
           <button
             onClick={() => setTab("comments")}
@@ -199,7 +201,7 @@ export default function DetailModal({
               tab === "comments" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
-            Обсуждение ({comments.length})
+            {t("detailDiscussion")} ({comments.length})
           </button>
         </div>
 
@@ -210,7 +212,7 @@ export default function DetailModal({
           {tab === "read" && (
             <div className="flex flex-col gap-4 h-full">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Текущий системный промпт</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("detailCurrentPrompt")}</span>
                 <button
                   onClick={() => handleCopy(agent.prompt, "current")}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
@@ -218,7 +220,7 @@ export default function DetailModal({
                   }`}
                 >
                   {copiedId === "current" ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span>{copiedId === "current" ? "Скопировано!" : "Скопировать промпт"}</span>
+                  <span>{copiedId === "current" ? t("detailCopied") : t("detailCopyPrompt")}</span>
                 </button>
               </div>
               <div className="flex-1 bg-slate-950 p-5 rounded-xl border border-slate-800 font-mono text-sm text-slate-200 leading-relaxed overflow-y-auto select-text min-h-80 max-h-96">
@@ -233,7 +235,7 @@ export default function DetailModal({
               {loadingVersions ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500/30 border-t-indigo-500" />
-                  <p className="text-xs text-slate-500">Загрузка истории...</p>
+                  <p className="text-xs text-slate-500">{t("detailLoadingHistory")}</p>
                 </div>
               ) : (
                 versions.map((ver, idx) => (
@@ -241,7 +243,7 @@ export default function DetailModal({
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xs font-bold bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full text-indigo-400">
-                          v{ver.version} {idx === 0 && "(Актуальная)"}
+                          v{ver.version} {idx === 0 && "(" + t("detailActualVersion") + ")"}
                         </span>
                         <span className="flex items-center gap-1 text-xs text-slate-500 font-medium">
                           <Clock className="h-3.5 w-3.5" />
@@ -266,7 +268,7 @@ export default function DetailModal({
                             disabled={actionLoading}
                             className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all"
                           >
-                            Восстановить
+                            {t("detailRestore")}
                           </button>
                         )}
                       </div>
@@ -286,7 +288,7 @@ export default function DetailModal({
               {/* Форма ввода комментария */}
               <form onSubmit={handleAddComment} className="flex flex-col gap-3">
                 <textarea
-                  placeholder={currentUser ? "Обсудить этот промпт... напишите ваши тесты или предложите улучшения" : "Для публикации комментариев необходимо авторизоваться."}
+                  placeholder={currentUser ? t("detailCommentPlaceholderUser") : t("detailCommentPlaceholderGuest")}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   disabled={!currentUser || actionLoading}
@@ -294,7 +296,7 @@ export default function DetailModal({
                   rows={3}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500 font-medium">Комментарий привязывается к версии v{agent.version}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">{t("detailCommentVersionBind")} v{agent.version}</span>
                   {currentUser ? (
                     <button
                       type="submit"
@@ -302,7 +304,7 @@ export default function DetailModal({
                       className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-xs active:scale-95 transition-all disabled:opacity-50"
                     >
                       <Send className="h-3.5 w-3.5" />
-                      Отправить
+                      {t("detailSend")}
                     </button>
                   ) : (
                     <button
@@ -310,7 +312,7 @@ export default function DetailModal({
                       onClick={onTriggerLogin}
                       className="text-xs text-indigo-400 font-semibold hover:underline"
                     >
-                      Войти в аккаунт
+                      {t("detailToCommentLogin")}
                     </button>
                   )}
                 </div>
@@ -323,7 +325,7 @@ export default function DetailModal({
                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500/30 border-t-indigo-500" />
                   </div>
                 ) : comments.length === 0 ? (
-                  <p className="text-center text-xs text-slate-500">Обсуждение еще не начато. Будьте первыми!</p>
+                  <p className="text-center text-xs text-slate-500">{t("detailNoComments")}</p>
                 ) : (
                   comments.map(comm => (
                     <div key={comm.id} className="flex gap-3 bg-slate-900/20 border border-slate-850 p-4 rounded-xl items-start">

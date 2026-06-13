@@ -1,4 +1,5 @@
 import React from "react";
+import { useLanguage } from "@/lib/i18n";
 import { 
   Layers, Code, PenTool, Image, Music, Laptop, 
   BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
@@ -38,11 +39,27 @@ export default function Sidebar({
   onSettingsClick,
   onLogoutClick
 }: SidebarProps) {
+  const { t } = useLanguage();
+  const catLabelMap = {
+    all: "catAll",
+    coding: "catCoding",
+    writing: "catWriting",
+    art: "catArt",
+    "audio-video": "catAudioVideo",
+    assistant: "catAssistant",
+    marketing: "catMarketing",
+    education: "catEducation",
+    agents: "catAgents",
+    security: "catSecurity",
+    creative: "catCreative",
+    productivity: "catProductivity",
+    other: "catOther"
+  };
   return (
     <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
         <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">{t("sidebarProfile")}</h3>
         {user ? (
           <div className="relative z-10 flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
@@ -60,7 +77,7 @@ export default function Sidebar({
               <p className="text-sm font-bold text-slate-200">@{user.username}</p>
             </div>
             <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
-              {user.bio || "Биография не указана. Заполните её в настройках."}
+              {user.bio || t("sidebarBioEmpty")}
             </p>
             
             <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60">
@@ -70,7 +87,7 @@ export default function Sidebar({
                 className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-all active:scale-95"
               >
                 <Settings className="h-3.5 w-3.5" />
-                Настройки
+                {t("sidebarSettings")}
               </button>
               <button
                 type="button"
@@ -89,19 +106,19 @@ export default function Sidebar({
                 className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-red-400 transition-all active:scale-95 ml-auto"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                Выйти
+                {t("sidebarLogout")}
               </button>
             </div>
           </div>
         ) : (
           <p className="text-xs text-slate-400 relative z-10 leading-relaxed">
-            Авторизуйтесь, чтобы публиковать свои промпты, вести обсуждения и ставить лайки.
+            {t("sidebarAuthPrompt")}
           </p>
         )}
       </div>
 
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 glass">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2 mb-3">Категории</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2 mb-3">{t("sidebarCategories")}</h3>
         <nav className="flex flex-col gap-1 max-h-[420px] overflow-y-auto pr-1">
           {CATEGORIES.map(cat => {
             const Icon = cat.icon;
@@ -117,7 +134,7 @@ export default function Sidebar({
                 }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
-                <span className="truncate">{cat.label}</span>
+                <span className="truncate">{t(catLabelMap[cat.id] || cat.id)}</span>
               </button>
             );
           })}
@@ -125,8 +142,8 @@ export default function Sidebar({
       </div>
 
       <div className="text-xs text-slate-500 px-4">
-        <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.3</p>
+        <p>{t("sidebarActivePrompts")}: {totalPromptsCount}</p>
+        <p className="mt-1">{t("sidebarOpenSource")}</p>
       </div>
     </aside>
   );

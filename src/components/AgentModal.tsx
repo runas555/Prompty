@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/i18n";
 import { X, Sparkles, AlertCircle } from "lucide-react";
 import { Agent } from "./AgentCard";
 
@@ -15,6 +16,7 @@ export default function AgentModal({
   onSave,
   agent
 }: AgentModalProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
@@ -36,11 +38,11 @@ export default function AgentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Пожалуйста, укажите имя агента");
+      setError(t("errorAgentName"));
       return;
     }
     if (!prompt.trim()) {
-      setError("Укажите текст промпта (системные инструкции)");
+      setError(t("errorAgentPrompt"));
       return;
     }
 
@@ -51,10 +53,10 @@ export default function AgentModal({
       if (success) {
         onClose();
       } else {
-        setError("Возникла ошибка сохранения. Убедитесь в верности Секретного токена");
+        setError(t("errorAgentSave"));
       }
     } catch (err: any) {
-      setError(err.message || "Не удалось отправить запрос");
+      setError(err.message || t("errorNetwork"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function AgentModal({
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-cyan-400" />
             <h2 className="text-lg font-bold text-slate-100">
-              {agent ? "Редактирование агента" : "Создание нового агента"}
+              {agent ? t("modalEditAgent") : t("modalCreateAgent")}
             </h2>
           </div>
           <button 
@@ -98,11 +100,11 @@ export default function AgentModal({
           {/* Имя агента */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Имя агента (Краткое описание задачи)
+              {t("modalAgentNameLabel")}
             </label>
             <input
               type="text"
-              placeholder="Например: Python-программист, Копирайтер текстов..."
+              placeholder={t("modalAgentNamePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={loading}
@@ -113,10 +115,10 @@ export default function AgentModal({
           {/* Текст промпта */}
           <div className="flex flex-col gap-2 flex-1">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Системный промпт / Инструкции
+              {t("modalAgentPromptLabel")}
             </label>
             <textarea
-              placeholder="Вставьте сюда ваш промпт, описывающий роль ИИ, правила вывода, тон..."
+              placeholder={t("modalAgentPromptPlaceholder")}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               disabled={loading}
@@ -132,14 +134,14 @@ export default function AgentModal({
               disabled={loading}
               className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
             >
-              Отмена
+              {t("modalCancel")}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-55 disabled:cursor-not-allowed text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/10 active:scale-95 transition-all duration-200"
             >
-              {loading ? "Сохранение..." : "Сохранить"}
+              {loading ? t("modalSaving") : t("modalSave")}
             </button>
           </div>
         </form>

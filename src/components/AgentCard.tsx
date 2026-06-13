@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "@/lib/i18n";
 import { Heart, MessageSquare, Copy, Check, Edit, Trash2 } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ export default function AgentCard({
   onLikeToggle,
   highlightText = ""
 }: AgentCardProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const isOwner = currentUser?.id === agent.userId;
 
@@ -180,7 +182,7 @@ export default function AgentCard({
                 <button
                   onClick={() => onEdit(agent)}
                   className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all"
-                  title="Редактировать"
+                  title={t("agentCardEdit")}
                 >
                   <Edit className="h-3.5 w-3.5" />
                 </button>
@@ -196,7 +198,7 @@ export default function AgentCard({
               }`}
             >
               {copied ? <Check className="h-3 w-3 stroke-[2.5]" /> : null}
-              <span>{copied ? "ОК" : "Копировать"}</span>
+              <span>{copied ? t("agentCardCopied") : t("agentCardCopy")}</span>
             </button>
           </div>
         </div>

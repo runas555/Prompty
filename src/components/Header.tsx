@@ -1,5 +1,6 @@
 import React from "react";
-import { Terminal } from "lucide-react";
+import { Terminal, Globe } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 
 interface HeaderProps {
   user: { id: string; username: string; bio: string } | null;
@@ -14,6 +15,7 @@ export default function Header({
   onOpenAddModal,
   totalAgents
 }: HeaderProps) {
+  const { language, setLanguage, t } = useLanguage();
   return (
     <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 w-full transition-all duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
@@ -27,7 +29,7 @@ export default function Header({
                 PromptSocial
               </h1>
               <p className="hidden sm:block text-[10px] text-slate-500 font-medium">
-                Каталог системных промптов ({totalAgents} агентов)
+                {t("headerCatalog")} ({totalAgents} {t("headerAgents")})
               </p>
             </div>
           </div>
@@ -35,10 +37,19 @@ export default function Header({
           <div className="flex items-center gap-3">
             {/* Кнопка "Создать" в шапке показывается только на Desktop, на мобилках она вынесена навигацией */}
             <button
+              onClick={() => setLanguage(language === "ru" ? "en" : "ru")}
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all mr-1"
+              title={language === "ru" ? "Switch to English" : "Переключить на русский"}
+            >
+              <Globe className="h-3.5 w-3.5 text-slate-400" />
+              <span>{language === "ru" ? "RU" : "EN"}</span>
+            </button>
+
+            <button
               onClick={user ? onOpenAddModal : onLoginClick}
               className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:opacity-90 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition-all duration-200 active:scale-95"
             >
-              Поделиться
+              {t("headerShare")}
             </button>
             
             {!user && (
@@ -46,7 +57,7 @@ export default function Header({
                 onClick={onLoginClick}
                 className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
               >
-                Войти
+                {t("headerLogin")}
               </button>
             )}
           </div>
