@@ -1,16 +1,17 @@
 import React from "react";
-import {Layers, Code, PenTool, Image, Music, Laptop, 
+import { 
+  Layers, Code, PenTool, Image, Music, Laptop, 
   BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
-  CheckSquare, HelpCircle, Settings, LogOut} from "lucide-react";
+  CheckSquare, HelpCircle, Settings, LogOut 
+} from "lucide-react";
 
 interface SidebarProps {
   activeCategory: string;
   setActiveCategory: (category: string) => void;
-  user: { id: string; username: string; bio: string; avatar: string 
+  user: { id: string; username: string; bio: string; avatar: string } | null;
+  totalPromptsCount: number;
   onSettingsClick?: () => void;
   onLogoutClick?: () => void;
-} | null;
-  totalPromptsCount: number;
 }
 
 export const CATEGORIES = [
@@ -30,7 +31,7 @@ export const CATEGORIES = [
 ];
 
 export default function Sidebar({
-activeCategory,
+  activeCategory,
   setActiveCategory,
   user,
   totalPromptsCount,
@@ -61,7 +62,8 @@ activeCategory,
             <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
               {user.bio || "Биография не указана. Заполните её в настройках."}
             </p>
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60 relative z-10">
+            
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60">
               <button
                 type="button"
                 onClick={onSettingsClick}
@@ -80,7 +82,7 @@ activeCategory,
                       await fetch("/api/auth/logout", { method: "POST" });
                       window.location.reload();
                     } catch (err) {
-                      console.error("Ошибка при выходе из системы:", err);
+                      console.error("Logout error:", err);
                     }
                   }
                 }}
