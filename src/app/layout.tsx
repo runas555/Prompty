@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PromptHistorian - Хранилище промптов",
-  description: "Удобный каталог агентов и история изменений системных инструкций",
+  title: "PromptSocial - Социальная сеть промпт-инженеров",
+  description: "Делитесь системными инструкциями, оценивайте, версионируйте и комментируйте лучшие промпты.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="antialiased selection:bg-cyan-500/30 selection:text-cyan-300">
+      <body className="antialiased selection:bg-indigo-500/30 selection:text-indigo-300">
         {children}
       </body>
     </html>

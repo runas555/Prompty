@@ -9,28 +9,27 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const user = verifyAuth(request);
     if (!user) {
-      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
+      return NextResponse.json({ error: "Запрещено без авторизации" }, { status: 401 });
     }
 
-    const { name, prompt } = await request.json();
+    const { name, prompt, category } = await request.json();
 
-    if (!name || !name.trim() || !prompt || !prompt.trim()) {
+    if (!name || !name.trim() || !prompt || !prompt.trim() || !category) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
 
-    // Проверка прав на владение агентом
     const agentCheck = await db.execute({
       sql: "SELECT * FROM agents WHERE id = ? AND user_id = ?",
       args: [id, user.id]
     });
 
     if (agentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Агент не найден или доступ ограничен" }, { status: 404 });
+      return NextResponse.json({ error: "Пост не найден или доступ ограничен" }, { status: 404 });
     }
 
     await db.execute({
-      sql: "UPDATE agents SET name = ? WHERE id = ?",
-      args: [name.trim(), id]
+      sql: "UPDATE agents SET name = ?, category = ? WHERE id = ?",
+      args: [name.trim(), category, id]
     });
 
     const lastVersionResult = await db.execute({
@@ -58,17 +57,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       });
     }
 
-    return NextResponse.json({
-      id,
-      name: name.trim(),
-      prompt: prompt.trim(),
-      version: nextVersion,
-      updatedAt: now
-    });
-
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("PUT /api/agents/[id] error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }
 
@@ -78,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { id } = params;
     const user = verifyAuth(request);
     if (!user) {
-      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
+      return NextResponse.json({ error: "Доступ ограничен" }, { status: 401 });
     }
 
     const agentCheck = await db.execute({
@@ -87,23 +79,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     });
 
     if (agentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Агент не найден или доступ ограничен" }, { status: 404 });
+      return NextResponse.json({ error: "Пост не найден или доступ ограничен" }, { status: 404 });
     }
 
-    await db.execute({
-      sql: "DELETE FROM agents WHERE id = ?",
-      args: [id]
-    });
+    await db.execute({ sql: "DELETE FROM agents WHERE id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM prompt_versions WHERE agent_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM comments WHERE agent_id = ?", args: [id] });
+    await db.execute({ sql: "DELETE FROM likes WHERE agent_id = ?", args: [id] });
 
-    await db.execute({
-      sql: "DELETE FROM prompt_versions WHERE agent_id = ?",
-      args: [id]
-    });
-
-    return NextResponse.json({ success: true, message: "Агент успешно удален" });
-
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("DELETE /api/agents/[id] error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }

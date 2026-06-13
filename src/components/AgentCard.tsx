@@ -1,38 +1,47 @@
 import React, { useState } from "react";
-import { Copy, Check, History, Edit, Trash2, Calendar } from "lucide-react";
-import { formatDateTime } from "@/lib/utils";
+import { Heart, MessageSquare, Copy, Check, History, Trash2, Calendar } from "lucide-react";
+import { formatDateTime, getUserGradient } from "@/lib/utils";
 
 export interface Agent {
   id: string;
   userId: string;
   name: string;
+  category: string;
   createdAt: number;
+  username: string;
+  userBio: string;
   prompt: string;
   version: number;
   updatedAt: number;
+  likeCount: number;
+  commentCount: number;
+  hasLiked: boolean;
 }
 
 interface AgentCardProps {
   agent: Agent;
-  currentUserId?: string | null;
+  currentUser: { id: string } | null;
   onEdit: (agent: Agent) => void;
-  onOpenHistory: (agentId: string) => void;
+  onOpenHistory: (agent: Agent) => void;
   onDelete: (agentId: string) => void;
+  onLikeToggle: (agentId: string, currentLikeStatus: boolean) => void;
   highlightText?: string;
 }
 
 export default function AgentCard({
   agent,
-  currentUserId,
+  currentUser,
   onEdit,
   onOpenHistory,
   onDelete,
+  onLikeToggle,
   highlightText = ""
 }: AgentCardProps) {
   const [copied, setCopied] = useState(false);
-  const isOwner = currentUserId === agent.userId;
+  const isOwner = currentUser?.id === agent.userId;
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(agent.prompt);
@@ -49,7 +58,7 @@ export default function AgentCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Не удалось скопировать промпт:", err);
+      console.error(err);
     }
   };
 
@@ -72,84 +81,111 @@ export default function AgentCard({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 hover:border-slate-700 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between h-[340px] relative group overflow-hidden">
-      <div className="absolute -inset-px bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
+    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-[360px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300">
+      <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-slate-100 text-base truncate">
-              {highlight(agent.name, highlightText)}
-            </h3>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        {/* Автор и теги */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className={`h-7 w-7 rounded-lg bg-gradient-to-tr ${getUserGradient(agent.username)} flex items-center justify-center text-[10px] text-slate-950 font-extrabold uppercase shrink-0`}>
+                {agent.username.slice(0, 2)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-300 truncate">{agent.username}</p>
+                <p className="text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промпт-инженер"}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded-full uppercase">
                 v{agent.version}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-slate-500">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatDateTime(agent.updatedAt)}
+              <span className="text-[10px] text-slate-500 font-medium">
+                {formatDateTime(agent.createdAt)}
               </span>
             </div>
           </div>
+
+          <h3 className="font-bold text-slate-100 text-base truncate mb-2">
+            {highlight(agent.name, highlightText)}
+          </h3>
         </div>
 
-        <div className="flex-1 bg-slate-950/80 rounded-lg p-3 text-sm text-slate-300 border border-slate-800/80 overflow-y-auto mb-4 relative select-text">
-          <p className="whitespace-pre-wrap leading-relaxed break-words font-mono text-[12px] opacity-90 select-text">
-            {highlight(agent.prompt, highlightText)}
-          </p>
+        {/* Текст промпта */}
+        <div className="flex-1 bg-slate-950 p-4 rounded-xl text-sm text-slate-300 border border-slate-800/60 overflow-y-auto mb-4 font-mono text-[12px] opacity-90 select-text leading-relaxed">
+          <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-slate-800/80 pt-3">
-          <div className="flex items-center gap-1">
+        {/* Метрики соцсети и кнопки */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-800/60 pt-3">
+          {/* Социальная панель слева */}
+          <div className="flex items-center gap-3">
+            {/* Кнопка лайка */}
             <button
-              onClick={() => onOpenHistory(agent.id)}
-              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
-              title="История изменений"
+              onClick={() => onLikeToggle(agent.id, agent.hasLiked)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors ${
+                agent.hasLiked 
+                  ? "text-rose-400 hover:bg-rose-950/20" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+              }`}
             >
-              <History className="h-4.5 w-4.5" />
+              <Heart className={`h-4.5 w-4.5 ${agent.hasLiked ? "fill-rose-400 text-rose-400" : ""}`} />
+              <span>{agent.likeCount}</span>
             </button>
 
-            {/* Рендерим кнопки редактирования только владельцам */}
+            {/* Просмотр комментариев / историй */}
+            <button
+              onClick={() => onOpenHistory(agent)}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-2 py-1.5 rounded-lg hover:bg-slate-800/40"
+            >
+              <MessageSquare className="h-4.5 w-4.5" />
+              <span>{agent.commentCount}</span>
+            </button>
+          </div>
+
+          {/* Инструменты управления владельца и копирование справа */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onOpenHistory(agent)}
+              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+              title="Детали и версии"
+            >
+              <History className="h-4 w-4" />
+            </button>
+
             {isOwner && (
               <>
                 <button
-                  onClick={() => onEdit(agent)}
+                  onClick={(e) => { e.stopPropagation(); onEdit(agent); }}
                   className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
-                  title="Редактировать агента"
+                  title="Редактировать"
                 >
-                  <Edit className="h-4.5 w-4.5" />
+                  <Edit className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => onDelete(agent.id)}
+                  onClick={(e) => { e.stopPropagation(); onDelete(agent.id); }}
                   className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
                   title="Удалить"
                 >
-                  <Trash2 className="h-4.5 w-4.5" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </>
             )}
-          </div>
 
-          <button
-            onClick={handleCopy}
-            className={`flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-lg transition-all duration-200 shadow-sm active:scale-95 ${
-              copied
-                ? "bg-emerald-950 border border-emerald-800 text-emerald-300"
-                : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 stroke-[2.5]" />
-                Скопировано
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" />
-                Копировать
-              </>
-            )}
-          </button>
+            <button
+              onClick={handleCopy}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg shadow-sm active:scale-95 transition-all duration-200 ${
+                copied
+                  ? "bg-emerald-950 border border-emerald-800 text-emerald-300"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              {copied ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>{copied ? "ОК" : "Код"}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
