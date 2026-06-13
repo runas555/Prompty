@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, getLocalizedName } from "@/lib/i18n";
 import { Heart, MessageSquare, Copy, Check, Edit, Trash2 } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ export default function AgentCard({
   onLikeToggle,
   highlightText = ""
 }: AgentCardProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [copied, setCopied] = useState(false);
   const isOwner = currentUser?.id === agent.userId;
 
@@ -134,7 +134,7 @@ export default function AgentCard({
           </div>
 
           <h3 itemProp="name" className="font-bold text-slate-100 text-sm truncate leading-snug mb-1">
-            {highlight(agent.name, highlightText)}
+            {highlight(getLocalizedName(agent.name, language), highlightText)}
           </h3>
 
           {agent.tags && agent.tags.trim() && (

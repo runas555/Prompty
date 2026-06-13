@@ -261,3 +261,17 @@ export function useLanguage() {
   }
   return context;
 }
+
+export function getLocalizedName(fullName: string, language: "ru" | "en"): string {
+  if (!fullName) return "";
+  const parts = fullName.split(" | ");
+  if (parts.length > 1) {
+    const hasCyrillic0 = /[а-яА-ЯёЁ]/.test(parts[0]);
+    if (language === "ru") {
+      return hasCyrillic0 ? parts[0] : parts[1];
+    } else {
+      return hasCyrillic0 ? parts[1] : parts[0];
+    }
+  }
+  return fullName;
+}

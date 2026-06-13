@@ -49,7 +49,8 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
 
   useEffect(() => {
     if (agent) {
-      setName(agent.name);
+      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
+      setName(displayName);
       setPrompt(agent.prompt);
       setCategory(agent.category || "coding");
       setModel(agent.model || "any");
@@ -102,14 +103,11 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       let finalPrompt = prompt.trim();
 
       if (autoTranslate) {
-        const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalPrompt);
+        const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalName);
         const toLang = hasCyrillic ? "en" : "ru";
         
         const translatedName = await translateText(finalName, toLang);
-        const translatedPrompt = await translateText(finalPrompt, toLang);
-
         finalName = `${finalName} | ${translatedName}`;
-        finalPrompt = `${finalPrompt}\n\n--- ${toLang === "en" ? "English Version" : "Русская версия"} ---\n\n${translatedPrompt}`;
       }
 
       const success = await onSave(finalName, finalPrompt, category, model, tags.trim());

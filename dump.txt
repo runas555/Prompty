@@ -919,7 +919,7 @@ export default function Sidebar({
 
 === FILE: src/components/AgentCard.tsx ===
 import React, { useState } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, getLocalizedName } from "@/lib/i18n";
 import { Heart, MessageSquare, Copy, Check, Edit, Trash2 } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
@@ -970,7 +970,7 @@ export default function AgentCard({
   onLikeToggle,
   highlightText = ""
 }: AgentCardProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [copied, setCopied] = useState(false);
   const isOwner = currentUser?.id === agent.userId;
 
@@ -1054,7 +1054,7 @@ export default function AgentCard({
           </div>
 
           <h3 itemProp="name" className="font-bold text-slate-100 text-sm truncate leading-snug mb-1">
-            {highlight(agent.name, highlightText)}
+            {highlight(getLocalizedName(agent.name, language), highlightText)}
           </h3>
 
           {agent.tags && agent.tags.trim() && (
@@ -1179,7 +1179,8 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
 
   useEffect(() => {
     if (agent) {
-      setName(agent.name);
+      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
+      setName(displayName);
       setPrompt(agent.prompt);
       setCategory(agent.category || "coding");
       setModel(agent.model || "any");
@@ -1232,14 +1233,11 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       let finalPrompt = prompt.trim();
 
       if (autoTranslate) {
-        const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalPrompt);
+        const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalName);
         const toLang = hasCyrillic ? "en" : "ru";
         
         const translatedName = await translateText(finalName, toLang);
-        const translatedPrompt = await translateText(finalPrompt, toLang);
-
         finalName = `${finalName} | ${translatedName}`;
-        finalPrompt = `${finalPrompt}\n\n--- ${toLang === "en" ? "English Version" : "Русская версия"} ---\n\n${translatedPrompt}`;
       }
 
       const success = await onSave(finalName, finalPrompt, category, model, tags.trim());
@@ -1592,7 +1590,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
 === FILE: src/components/DetailModal.tsx ===
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, getLocalizedName } from "@/lib/i18n";
 import { X, History, MessageSquare, Copy, Check, Clock, Send, Sparkles } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 import { Agent } from "./AgentCard";
@@ -1629,7 +1627,7 @@ export default function DetailModal({
   onRestore,
   onTriggerLogin
 }: DetailModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [tab, setTab] = useState<"read" | "versions" | "comments">("read");
   const [versions, setVersions] = useState<Version[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -1761,7 +1759,7 @@ export default function DetailModal({
               {agent.username.slice(0, 2)}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100 truncate max-w-lg">{agent.name}</h2>
+              <h2 className="text-lg font-bold text-slate-100 truncate max-w-lg">{getLocalizedName(agent.name, language)}</h2>
               <p className="text-xs text-slate-500">Автор: @{agent.username} &bull; Версия v{agent.version}</p>
             </div>
           </div>

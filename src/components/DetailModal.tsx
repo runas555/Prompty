@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, getLocalizedName } from "@/lib/i18n";
 import { X, History, MessageSquare, Copy, Check, Clock, Send, Sparkles } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 import { Agent } from "./AgentCard";
@@ -36,7 +36,7 @@ export default function DetailModal({
   onRestore,
   onTriggerLogin
 }: DetailModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [tab, setTab] = useState<"read" | "versions" | "comments">("read");
   const [versions, setVersions] = useState<Version[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -168,7 +168,7 @@ export default function DetailModal({
               {agent.username.slice(0, 2)}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100 truncate max-w-lg">{agent.name}</h2>
+              <h2 className="text-lg font-bold text-slate-100 truncate max-w-lg">{getLocalizedName(agent.name, language)}</h2>
               <p className="text-xs text-slate-500">Автор: @{agent.username} &bull; Версия v{agent.version}</p>
             </div>
           </div>
