@@ -60,8 +60,8 @@ Ensure you have [Node.js](https://nodejs.org/) installed (v18 or higher is recom
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/promptsocial.git
-   cd promptsocial
+   git clone https://github.com/runas555/Prompty.git
+   cd prompty
    ```
 
 2. Install dependencies:
