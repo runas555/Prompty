@@ -595,7 +595,7 @@ export default function Home() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onSuccess={(userData) => {
-          setUser(userData);
+          setUser({ ...userData, bio: "", avatar: "" });
           checkSession();
           setMobileTab("feed");
         }}
