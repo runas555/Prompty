@@ -39,9 +39,9 @@ export default function BioModal({ isOpen, onClose, onSave, currentBio }: BioMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col">
+      <div className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
           <X className="h-5 w-5" />
         </button>

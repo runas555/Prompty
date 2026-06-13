@@ -35,7 +35,7 @@ export default function Sidebar({
   totalPromptsCount
 }: SidebarProps) {
   return (
-    <aside className="w-full md:w-64 flex flex-col gap-6 shrink-0">
+    <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
         <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
@@ -79,7 +79,7 @@ export default function Sidebar({
 
       <div className="text-xs text-slate-500 px-4">
         <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.1</p>
+        <p className="mt-1">PromptSocial &bull; Open-Source v1.2</p>
       </div>
     </aside>
   );

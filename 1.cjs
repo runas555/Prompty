@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('=== ЗАПУСК ПАТЧА СИСТЕМЫ КАТЕГОРИЙ И AI-МОДЕЛЕЙ ===\n');
+console.log('=== ЗАПУСК ПАТЧА ОПТИМИЗАЦИИ МОБИЛЬНОЙ ВЕРСИИ ===\n');
 
 try {
   // Вспомогательная функция для безопасной записи файлов
@@ -15,110 +15,120 @@ try {
     console.log(`[UPDATED] ${filePath}`);
   }
 
-  // 1. Обновление БД: src/lib/db.ts (Внедрение колонок model, tags и безопасной миграции)
-  const updatedDbLib = `import { createClient } from "@libsql/client";
+  // 1. Обновление глобальных стилей: src/app/globals.css (Адаптация безопасных зон для iOS/Android)
+  const updatedGlobals = `@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-const url = process.env.TURSO_DATABASE_URL || "file:local.db";
-const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+body {
+  background-color: #080c14;
+  color: #f1f5f9;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  /* Предотвращаем горизонтальный скролл на мобильных устройствах */
+  overflow-x: hidden; 
+}
 
-export const db = createClient({
-  url: url,
-  authToken: authToken,
-});
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-export async function initDb() {
-  try {
-    // 1. Пользователи
-    await db.execute(\`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        bio TEXT DEFAULT '',
-        created_at INTEGER NOT NULL
-      );
-    \`);
+::-webkit-scrollbar-track {
+  background: #080c14;
+}
 
-    // 2. Посты (Агенты) с поддержкой model и tags
-    await db.execute(\`
-      CREATE TABLE IF NOT EXISTS agents (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        model TEXT DEFAULT 'any',
-        tags TEXT DEFAULT '',
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    \`);
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
 
-    // 3. Версии промптов
-    await db.execute(\`
-      CREATE TABLE IF NOT EXISTS prompt_versions (
-        id TEXT PRIMARY KEY,
-        agent_id TEXT NOT NULL,
-        prompt TEXT NOT NULL,
-        version INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
-      );
-    \`);
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
 
-    // 4. Комментарии
-    await db.execute(\`
-      CREATE TABLE IF NOT EXISTS comments (
-        id TEXT PRIMARY KEY,
-        agent_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        text TEXT NOT NULL,
-        prompt_version INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    \`);
+/* Эффект матового стекла (glassmorphism) */
+.glass {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
 
-    // 5. Лайки
-    await db.execute(\`
-      CREATE TABLE IF NOT EXISTS likes (
-        user_id TEXT NOT NULL,
-        agent_id TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        PRIMARY KEY (user_id, agent_id),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
-      );
-    \`);
+/* Безопасный отступ снизу для мобильных экранов с вырезом */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 
-    // БЕЗОПАСНАЯ МИГРАЦИЯ ДЛЯ СУЩЕСТВУЮЩИХ БД
-    try {
-      await db.execute("ALTER TABLE agents ADD COLUMN user_id TEXT DEFAULT 'system_default'");
-    } catch (e) {}
-
-    try {
-      await db.execute("ALTER TABLE agents ADD COLUMN model TEXT DEFAULT 'any'");
-    } catch (e) {}
-
-    try {
-      await db.execute("ALTER TABLE agents ADD COLUMN tags TEXT DEFAULT ''");
-    } catch (e) {}
-
-    // Индексы для оптимизации
-    await db.execute("CREATE INDEX IF NOT EXISTS idx_comments_agent ON comments(agent_id)");
-    await db.execute("CREATE INDEX IF NOT EXISTS idx_likes_agent ON likes(agent_id)");
-    await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_user ON agents(user_id)");
-    await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_category ON agents(category)");
-    await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_model ON agents(model)");
-
-  } catch (error) {
-    console.error("Database initialization failed:", error);
-    throw error;
-  }
+/* Скрытие скроллбара для горизонтального меню */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }`;
-  writeProjectFile('src/lib/db.ts', updatedDbLib);
+  writeProjectFile('src/app/globals.css', updatedGlobals);
 
-  // 2. Обновление Сайдбара: src/components/Sidebar.tsx (12 категорий с Lucide-иконками)
+  // 2. Оптимизация шапки: src/components/Header.tsx (Минималистичный вид на мобильных экранах)
+  const updatedHeader = `import React from "react";
+import { Terminal } from "lucide-react";
+
+interface HeaderProps {
+  user: { id: string; username: string; bio: string } | null;
+  onLoginClick: () => void;
+  onOpenAddModal: () => void;
+  totalAgents: number;
+}
+
+export default function Header({
+  user,
+  onLoginClick,
+  onOpenAddModal,
+  totalAgents
+}: HeaderProps) {
+  return (
+    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 w-full transition-all duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center text-slate-950 shadow-lg shadow-indigo-500/20">
+              <Terminal className="h-4.5 w-4.5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                PromptSocial
+              </h1>
+              <p className="hidden sm:block text-[10px] text-slate-500 font-medium">
+                Каталог системных промптов ({totalAgents} агентов)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Кнопка "Создать" в шапке показывается только на Desktop, на мобилках она вынесена навигацией */}
+            <button
+              onClick={user ? onOpenAddModal : onLoginClick}
+              className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:opacity-90 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition-all duration-200 active:scale-95"
+            >
+              Поделиться
+            </button>
+            
+            {!user && (
+              <button
+                onClick={onLoginClick}
+                className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
+              >
+                Войти
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}`;
+  writeProjectFile('src/components/Header.tsx', updatedHeader);
+
+  // 3. Обновление Сайдбара: src/components/Sidebar.tsx (Скрытие на мобильных экранах)
   const updatedSidebar = `import React from "react";
 import { 
   Layers, Code, PenTool, Image, Music, Laptop, 
@@ -156,7 +166,7 @@ export default function Sidebar({
   totalPromptsCount
 }: SidebarProps) {
   return (
-    <aside className="w-full md:w-64 flex flex-col gap-6 shrink-0">
+    <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
         <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
@@ -200,16 +210,16 @@ export default function Sidebar({
 
       <div className="text-xs text-slate-500 px-4">
         <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.1</p>
+        <p className="mt-1">PromptSocial &bull; Open-Source v1.2</p>
       </div>
     </aside>
   );
 }`;
   writeProjectFile('src/components/Sidebar.tsx', updatedSidebar);
 
-  // 3. Обновление Карточки Агента: src/components/AgentCard.tsx (Индикаторы AI-моделей и хэштегов)
+  // 4. Оптимизация карточки агента: src/components/AgentCard.tsx (Увеличенные тач-зоны и адаптивные отступы)
   const updatedAgentCard = `import React, { useState } from "react";
-import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2, Calendar, Cpu } from "lucide-react";
+import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2 } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
 export interface Agent {
@@ -302,20 +312,19 @@ export default function AgentCard({
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-[390px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300 glass">
+    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between h-[340px] sm:h-[390px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300 glass">
       <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
-        {/* Автор и теги */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className={\`h-7 w-7 rounded-lg bg-gradient-to-tr \${getUserGradient(agent.username)} flex items-center justify-center text-[10px] text-slate-950 font-extrabold uppercase shrink-0\`}>
                 {agent.username.slice(0, 2)}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-300 truncate">@{agent.username}</p>
-                <p className="text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промптер"}</p>
+                <p className="hidden sm:block text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промптер"}</p>
               </div>
             </div>
             
@@ -329,15 +338,14 @@ export default function AgentCard({
             </div>
           </div>
 
-          <h3 className="font-bold text-slate-100 text-base truncate mb-1.5">
+          <h3 className="font-bold text-slate-100 text-sm sm:text-base truncate mb-1">
             {highlight(agent.name, highlightText)}
           </h3>
 
-          {/* Отображение хэштегов */}
           {agent.tags && agent.tags.trim() && (
-            <div className="flex flex-wrap gap-1 mb-2.5 max-h-6 overflow-hidden">
+            <div className="flex flex-wrap gap-1 mb-2 max-h-5 overflow-hidden">
               {agent.tags.split(",").map((tag, idx) => (
-                <span key={idx} className="text-[10px] text-slate-400 font-medium bg-slate-800/40 px-2 py-0.5 rounded">
+                <span key={idx} className="text-[9px] sm:text-[10px] text-slate-400 font-medium bg-slate-800/40 px-1.5 py-0.5 rounded">
                   #{tag.trim()}
                 </span>
               ))}
@@ -346,19 +354,19 @@ export default function AgentCard({
         </div>
 
         {/* Текст промпта */}
-        <div className="flex-1 bg-slate-950 p-4 rounded-xl text-sm text-slate-300 border border-slate-850 overflow-y-auto mb-4 font-mono text-[12px] opacity-90 select-text leading-relaxed">
+        <div className="flex-1 bg-slate-950 p-3 sm:p-4 rounded-xl text-xs sm:text-sm text-slate-300 border border-slate-850 overflow-y-auto mb-3 sm:mb-4 font-mono text-[11px] sm:text-[12px] opacity-90 select-text leading-relaxed">
           <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
         </div>
 
-        {/* Метрики соцсети и кнопки */}
-        <div className="flex items-center justify-between gap-3 border-t border-slate-800/60 pt-3">
+        {/* Действия и метрики - увеличены тач-зоны до 40px+ */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-800/60 pt-2.5 sm:pt-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => onLikeToggle(agent.id, agent.hasLiked)}
-              className={\`flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors \${
+              className={\`flex items-center justify-center gap-1.5 text-xs font-semibold h-10 px-3 rounded-xl transition-colors \${
                 agent.hasLiked 
-                  ? "text-rose-400 hover:bg-rose-950/20" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                  ? "text-rose-400 bg-rose-950/20" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 bg-slate-900/40 border border-slate-800/50"
               }\`}
             >
               <Heart className={\`h-4.5 w-4.5 \${agent.hasLiked ? "fill-rose-400 text-rose-400" : ""}\`} />
@@ -367,7 +375,7 @@ export default function AgentCard({
 
             <button
               onClick={() => onOpenHistory(agent)}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-2 py-1.5 rounded-lg hover:bg-slate-800/40"
+              className="flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 h-10 px-3 rounded-xl bg-slate-900/40 border border-slate-800/50 hover:bg-slate-800/40"
             >
               <MessageSquare className="h-4.5 w-4.5" />
               <span>{agent.commentCount}</span>
@@ -375,26 +383,18 @@ export default function AgentCard({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onOpenHistory(agent)}
-              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
-              title="Детали и версии"
-            >
-              <History className="h-4 w-4" />
-            </button>
-
             {isOwner && (
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); onEdit(agent); }}
-                  className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                  className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-xl border border-slate-800/50 transition-all"
                   title="Редактировать"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(agent.id); }}
-                  className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                  className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-xl border border-slate-800/50 transition-all"
                   title="Удалить"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -404,14 +404,14 @@ export default function AgentCard({
 
             <button
               onClick={handleCopy}
-              className={\`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg shadow-sm active:scale-95 transition-all duration-200 \${
+              className={\`flex items-center gap-1.5 text-xs font-bold h-10 px-4 rounded-xl shadow-sm active:scale-95 transition-all duration-200 \${
                 copied
                   ? "bg-emerald-950 border border-emerald-800 text-emerald-300"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
               }\`}
             >
               {copied ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{copied ? "ОК" : "Код"}</span>
+              <span>{copied ? "ОК" : "Копировать"}</span>
             </button>
           </div>
         </div>
@@ -421,442 +421,59 @@ export default function AgentCard({
 }`;
   writeProjectFile('src/components/AgentCard.tsx', updatedAgentCard);
 
-  // 4. Обновление Модалки Создания: src/components/PostModal.tsx (Выбор AI-модели и добавление тегов)
-  const updatedPostModal = `import React, { useState, useEffect } from "react";
-import { X, Sparkles, AlertCircle } from "lucide-react";
-import { CATEGORIES } from "./Sidebar";
-import { Agent } from "./AgentCard";
+  // 5. Оптимизация модалок: Модифицируем AuthModal, PostModal, DetailModal и BioModal под Bottom Sheets (снизу на мобилках)
+  const convertToBottomSheet = (filePath) => {
+    if (!fs.existsSync(filePath)) return;
+    let code = fs.readFileSync(filePath, 'utf8');
+    
+    // Меняем контейнер модалки, чтобы на мобилках он прилипал к низу
+    code = code.replace(
+      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"',
+      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[92vh] sm:max-h-[90vh] bottom-0 sm:bottom-auto absolute sm:relative"'
+    );
+    code = code.replace(
+      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl z-10 flex flex-col"',
+      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative"'
+    );
+    code = code.replace(
+      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl z-10 overflow-hidden"',
+      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl z-10 overflow-hidden bottom-0 sm:bottom-auto absolute sm:relative"'
+    );
+    code = code.replace(
+      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col"',
+      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative"'
+    );
 
-interface PostModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (name: string, prompt: string, category: string, model: string, tags: string) => Promise<boolean>;
-  agent?: Agent | null;
-}
+    // Центрирование модалок во весь экран на мобильных устройствах
+    code = code.replace(
+      'className="fixed inset-0 z-50 flex items-center justify-center p-4"',
+      'className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"'
+    );
 
-const MODELS = [
-  { id: "any", label: "Универсальный (любая модель)" },
-  { id: "gpt4", label: "OpenAI GPT-4 / GPT-4o" },
-  { id: "claude", label: "Anthropic Claude 3.5" },
-  { id: "gemini", label: "Google Gemini Pro" },
-  { id: "llama", label: "LLaMA / DeepSeek" },
-  { id: "midjourney", label: "Midjourney / DALL-E / Art" }
-];
-
-export default function PostModal({
-  isOpen,
-  onClose,
-  onSave,
-  agent
-}: PostModalProps) {
-  const [name, setName] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [category, setCategory] = useState("coding");
-  const [model, setModel] = useState("any");
-  const [tags, setTags] = useState("");
-  
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (agent) {
-      setName(agent.name);
-      setPrompt(agent.prompt);
-      setCategory(agent.category);
-      setModel(agent.model || "any");
-      setTags(agent.tags || "");
-    } else {
-      setName("");
-      setPrompt("");
-      setCategory("coding");
-      setModel("any");
-      setTags("");
-    }
-    setError("");
-  }, [agent, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !prompt.trim() || !category || !model) {
-      setError("Пожалуйста, заполните все обязательные поля формы");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const success = await onSave(name.trim(), prompt.trim(), category, model, tags.trim());
-      if (success) {
-        onClose();
-      } else {
-        setError("Возникла ошибка при сохранении данных.");
-      }
-    } catch (err: any) {
-      setError(err.message || "Не удалось отправить запрос.");
-    } finally {
-      setLoading(false);
-    }
+    fs.writeFileSync(filePath, code, 'utf8');
+    console.log(`[BOTTOM SHEET UX APPLIED] ${filePath}`);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+  convertToBottomSheet('src/components/AuthModal.tsx');
+  convertToBottomSheet('src/components/PostModal.tsx');
+  convertToBottomSheet('src/components/DetailModal.tsx');
+  convertToBottomSheet('src/components/BioModal.tsx');
 
-      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-400" />
-            <h2 className="text-lg font-bold text-slate-100">
-              {agent ? "Редактирование публикации" : "Поделиться новым промптом"}
-            </h2>
-          </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg hover:bg-slate-800 transition-all">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto p-6 gap-4">
-          {error && (
-            <div className="bg-red-950/50 border border-red-900 rounded-xl p-4 flex items-start gap-3 text-sm text-red-300">
-              <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Категория */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Категория</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                {CATEGORIES.filter(c => c.id !== "all").map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* AI Модель */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Целевая модель</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                {MODELS.map(m => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Теги */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Теги (Через запятую)</label>
-            <input
-              type="text"
-              placeholder="Например: react, typescript, seo, refactoring"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              disabled={loading}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Имя */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Название роли / Задача промпта</label>
-            <input
-              type="text"
-              placeholder="Например: Генератор SEO метаданных..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={loading}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Текст */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Инструкции (Промпт)</label>
-            <textarea
-              placeholder="Задайте системную роль, ограничения и формат ответов..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={loading}
-              className="w-full h-56 bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 border-t border-slate-800 pt-4 mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md transition-all active:scale-95"
-            >
-              {loading ? "Сохранение..." : "Опубликовать"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}`;
-  writeProjectFile('src/components/PostModal.tsx', updatedPostModal);
-
-  // 5. Обновление API Агентов: src/app/api/agents/route.ts (Фильтрация и сохранение model и tags)
-  const updatedApiAgents = `import { NextRequest, NextResponse } from "next/server";
-import { db, initDb } from "@/lib/db";
-import { generateUUID } from "@/lib/utils";
-import { verifyAuth } from "@/lib/auth";
-
-export async function GET(request: NextRequest) {
-  try {
-    await initDb();
-    const user = verifyAuth(request);
-    
-    // Считываем параметры фильтрации
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category") || "all";
-    const model = searchParams.get("model") || "all";
-
-    let sqlQuery = \`
-      SELECT 
-        a.id, 
-        a.user_id,
-        a.name, 
-        a.category,
-        a.model,
-        a.tags,
-        a.created_at,
-        u.username,
-        u.bio,
-        pv.prompt, 
-        pv.version, 
-        pv.created_at as updated_at,
-        (SELECT COUNT(*) FROM likes WHERE agent_id = a.id) as like_count,
-        (SELECT COUNT(*) FROM comments WHERE agent_id = a.id) as comment_count,
-        (SELECT COUNT(*) FROM likes WHERE agent_id = a.id AND user_id = ?) as has_liked
-      FROM agents a
-      LEFT JOIN users u ON u.id = a.user_id
-      LEFT JOIN prompt_versions pv ON pv.agent_id = a.id
-      WHERE pv.version = (
-        SELECT MAX(version) FROM prompt_versions WHERE agent_id = a.id
-      )
-    \`;
-
-    const args: any[] = [user ? user.id : "guest_unauthorized"];
-
-    if (category !== "all") {
-      sqlQuery += " AND a.category = ?";
-      args.push(category);
-    }
-
-    if (model !== "all") {
-      sqlQuery += " AND a.model = ?";
-      args.push(model);
-    }
-
-    sqlQuery += " ORDER BY a.created_at DESC";
-
-    const queryResult = await db.execute({ sql: sqlQuery, args });
-
-    const feed = queryResult.rows.map(row => ({
-      id: row.id as string,
-      userId: row.user_id as string,
-      name: row.name as string,
-      category: row.category as string,
-      model: (row.model as string) || "any",
-      tags: (row.tags as string) || "",
-      createdAt: Number(row.created_at),
-      username: (row.username as string) || "Deleted User",
-      userBio: (row.bio as string) || "",
-      prompt: row.prompt as string,
-      version: Number(row.version),
-      updatedAt: Number(row.updated_at),
-      likeCount: Number(row.like_count),
-      commentCount: Number(row.comment_count),
-      hasLiked: Number(row.has_liked) > 0
-    }));
-
-    return NextResponse.json(feed);
-  } catch (error: any) {
-    console.error("GET /api/agents error:", error);
-    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    await initDb();
-    const user = verifyAuth(request);
-    if (!user) {
-      return NextResponse.json({ error: "Пожалуйста, войдите в систему" }, { status: 401 });
-    }
-
-    const { name, prompt, category, model, tags } = await request.json();
-
-    if (!name || !name.trim() || !prompt || !prompt.trim() || !category || !model) {
-      return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
-    }
-
-    // Нормализация тегов
-    const cleanTags = tags 
-      ? tags.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "").join(",") 
-      : "";
-
-    const agentId = generateUUID();
-    const versionId = generateUUID();
-    const now = Date.now();
-
-    await db.execute({
-      sql: "INSERT INTO agents (id, user_id, name, category, model, tags, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      args: [agentId, user.id, name.trim(), category, model, cleanTags, now]
-    });
-
-    await db.execute({
-      sql: "INSERT INTO prompt_versions (id, agent_id, prompt, version, created_at) VALUES (?, ?, ?, ?, ?)",
-      args: [versionId, agentId, prompt.trim(), 1, now]
-    });
-
-    return NextResponse.json({ success: true, agentId }, { status: 201 });
-  } catch (error: any) {
-    console.error("POST /api/agents error:", error);
-    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
-  }
-}`;
-  writeProjectFile('src/app/api/agents/route.ts', updatedApiAgents);
-
-  // 6. Обновление API обновления поста: src/app/api/agents/[id]/route.ts (Поддержка новых полей)
-  const updatedApiAgentId = `import { NextRequest, NextResponse } from "next/server";
-import { db, initDb } from "@/lib/db";
-import { generateUUID } from "@/lib/utils";
-import { verifyAuth } from "@/lib/auth";
-
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    await initDb();
-    const { id } = params;
-    const user = verifyAuth(request);
-    if (!user) {
-      return NextResponse.json({ error: "Запрещено без авторизации" }, { status: 401 });
-    }
-
-    const { name, prompt, category, model, tags } = await request.json();
-
-    if (!name || !name.trim() || !prompt || !prompt.trim() || !category || !model) {
-      return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
-    }
-
-    const agentCheck = await db.execute({
-      sql: "SELECT * FROM agents WHERE id = ? AND user_id = ?",
-      args: [id, user.id]
-    });
-
-    if (agentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Пост не найден или доступ ограничен" }, { status: 404 });
-    }
-
-    // Нормализация тегов
-    const cleanTags = tags 
-      ? tags.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "").join(",") 
-      : "";
-
-    await db.execute({
-      sql: "UPDATE agents SET name = ?, category = ?, model = ?, tags = ? WHERE id = ?",
-      args: [name.trim(), category, model, cleanTags, id]
-    });
-
-    const lastVersionResult = await db.execute({
-      sql: "SELECT MAX(version) as max_ver FROM prompt_versions WHERE agent_id = ?",
-      args: [id]
-    });
-
-    const currentMaxVersion = Number(lastVersionResult.rows[0].max_ver) || 0;
-
-    const lastPromptResult = await db.execute({
-      sql: "SELECT prompt FROM prompt_versions WHERE agent_id = ? AND version = ?",
-      args: [id, currentMaxVersion]
-    });
-
-    const lastPromptText = lastPromptResult.rows[0]?.prompt as string;
-    let nextVersion = currentMaxVersion;
-    const now = Date.now();
-
-    if (lastPromptText !== prompt.trim()) {
-      nextVersion = currentMaxVersion + 1;
-      const versionId = generateUUID();
-      await db.execute({
-        sql: "INSERT INTO prompt_versions (id, agent_id, prompt, version, created_at) VALUES (?, ?, ?, ?, ?)",
-        args: [versionId, id, prompt.trim(), nextVersion, now]
-      });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("PUT /api/agents/[id] error:", error);
-    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    await initDb();
-    const { id } = params;
-    const user = verifyAuth(request);
-    if (!user) {
-      return NextResponse.json({ error: "Доступ ограничен" }, { status: 401 });
-    }
-
-    const agentCheck = await db.execute({
-      sql: "SELECT * FROM agents WHERE id = ? AND user_id = ?",
-      args: [id, user.id]
-    });
-
-    if (agentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Пост не найден или доступ ограничен" }, { status: 404 });
-    }
-
-    await db.execute({ sql: "DELETE FROM agents WHERE id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM prompt_versions WHERE agent_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM comments WHERE agent_id = ?", args: [id] });
-    await db.execute({ sql: "DELETE FROM likes WHERE agent_id = ?", args: [id] });
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("DELETE /api/agents/[id] error:", error);
-    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
-  }
-}`;
-  writeProjectFile('src/app/api/agents/[id]/route.ts', updatedApiAgentId);
-
-  // 7. Обновление Главной Ленты: src/app/page.tsx (Рендеринг панели фильтрации моделей и поиска по хэштегам)
+  // 6. Обновление Главного Модуля: src/app/page.tsx (Внедрение Bottom Tab Bar и контекстного рендеринга разделов)
   const updatedMainPage = `"use client";
 
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
+import Sidebar, { CATEGORIES } from "@/components/Sidebar";
 import AgentCard, { Agent } from "@/components/AgentCard";
 import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
 import BioModal from "@/components/BioModal";
-import { AlertCircle, Terminal, Search, Cpu } from "lucide-react";
+import { 
+  AlertCircle, Terminal, Search, Layers, 
+  User, Settings, LogOut, PlusCircle, Compass 
+} from "lucide-react";
 
 const MODELS = [
   { id: "all", label: "Все ИИ модели" },
@@ -876,8 +493,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Сессия
+  // Сессионные данные
   const [user, setUser] = useState<{ id: string; username: string; bio: string } | null>(null);
+
+  // Навигация для мобильных платформ
+  const [mobileTab, setMobileTab] = useState<"feed" | "categories" | "search" | "profile">("feed");
 
   // Модальные окна
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -938,6 +558,7 @@ export default function Home() {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
       fetchFeed();
+      setMobileTab("feed");
     } catch (err) {
       console.error(err);
     }
@@ -957,6 +578,7 @@ export default function Home() {
 
       if (res.ok) {
         await fetchFeed();
+        setMobileTab("feed");
         return true;
       }
       return false;
@@ -1070,20 +692,27 @@ export default function Home() {
     );
   });
 
+  const handleOpenAddModal = () => {
+    if (!user) {
+      setIsAuthOpen(true);
+    } else {
+      setEditingAgent(null);
+      setIsPostOpen(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 pb-20 md:pb-0">
       <Header
         user={user}
         onLoginClick={() => setIsAuthOpen(true)}
-        onLogout={handleLogout}
-        onOpenAddModal={() => {
-          setEditingAgent(null);
-          setIsPostOpen(true);
-        }}
-        onOpenBioModal={() => setIsBioOpen(true)}
+        onOpenAddModal={handleOpenAddModal}
+        totalAgents={agents.length}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col md:flex-row gap-8 flex-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
+        
+        {/* Сайдбар скрыт на мобильных устройствах, заменяясь на Bottom Navigation */}
         <Sidebar
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
@@ -1091,96 +720,271 @@ export default function Home() {
           totalPromptsCount={agents.length}
         />
 
-        <div className="flex-1 flex flex-col gap-6">
-          {/* Панель поиска */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Поиск по задачам, тегам (#seo, #react) или авторам..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all duration-200"
-            />
+        <div className="flex-1 flex flex-col gap-5 md:gap-6">
+          
+          {/* ================= DESKTOP VIEW LAYOUT ================= */}
+          <div className="hidden md:flex flex-col gap-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Поиск по задачам, тегам (#seo, #react) или авторам..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-1 select-none hide-scrollbar">
+              {MODELS.map(m => {
+                const isActive = activeModel === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setActiveModel(m.id)}
+                    className={\`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold \${
+                      isActive 
+                        ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
+                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200"
+                    }\`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Панель фильтрации по AI Моделям */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-1 select-none">
-            {MODELS.map(m => {
-              const isActive = activeModel === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setActiveModel(m.id)}
-                  className={\`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold \${
-                    isActive 
-                      ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
-                      : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-                  }\`}
-                >
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {error && (
-            <div className="bg-red-950/40 border border-red-900 rounded-2xl p-4 flex items-center gap-3 text-sm text-red-300">
-              <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {loading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[390px] animate-pulse" />
-              ))}
-            </div>
-          ) : filteredAgents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto">
-              <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
-                <Terminal className="h-7 w-7 stroke-[1.5]" />
+          {/* ================= MOBILE VIEW CONTEXTUAL LAYOUT ================= */}
+          
+          {/* Вкладка 1: Лента промптов (мобильные) */}
+          <div className={\`md:block \${mobileTab === "feed" ? "block" : "hidden"}\`}>
+            {error && (
+              <div className="bg-red-950/40 border border-red-900 rounded-2xl p-4 flex items-center gap-3 text-sm text-red-300 mb-4">
+                <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
+                <span>{error}</span>
               </div>
-              <h3 className="text-lg font-bold text-slate-200">
-                {searchQuery ? "Совпадений не найдено" : "Секция пуста"}
-              </h3>
-              <p className="text-sm text-slate-500 mt-2">
-                {searchQuery ? "Скорректируйте поисковые слова." : "Опубликуйте первый промпт в этой секции!"}
-              </p>
+            )}
+
+            {loading ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {[1, 2].map(i => (
+                  <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[340px] animate-pulse" />
+                ))}
+              </div>
+            ) : filteredAgents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto">
+                <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
+                  <Terminal className="h-7 w-7 stroke-[1.5]" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-200">Раздел пуст</h3>
+                <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой секции!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {filteredAgents.map(agent => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    currentUser={user}
+                    highlightText={searchQuery}
+                    onEdit={(a) => {
+                      setEditingAgent(a);
+                      setIsPostOpen(true);
+                    }}
+                    onOpenHistory={(a) => {
+                      setActiveAgent(a);
+                      setIsDetailOpen(true);
+                    }}
+                    onDelete={handleDeleteAgent}
+                    onLikeToggle={handleLikeToggle}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Вкладка 2: Выбор категорий (мобильные) */}
+          <div className={\`md:hidden bg-slate-900/40 border border-slate-800 rounded-2xl p-5 glass \${mobileTab === "categories" ? "block" : "hidden"}\`}>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">Выберите категорию</h3>
+            <div className="grid grid-cols-1 gap-2">
+              {CATEGORIES.map(cat => {
+                const Icon = cat.icon;
+                const isActive = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setMobileTab("feed");
+                    }}
+                    className={\`flex items-center gap-4 w-full text-left px-4 py-3.5 rounded-xl text-sm transition-all active:scale-98 \${
+                      isActive
+                        ? "bg-indigo-600 text-white font-bold"
+                        : "bg-slate-950/40 text-slate-300 border border-slate-800/50 hover:bg-slate-800/50"
+                    }\`}
+                  >
+                    <Icon className="h-5 w-5 text-slate-400 shrink-0" />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredAgents.map(agent => (
-                <AgentCard
-                  key={agent.id}
-                  agent={agent}
-                  currentUser={user}
-                  highlightText={searchQuery}
-                  onEdit={(a) => {
-                    setEditingAgent(a);
-                    setIsPostOpen(true);
-                  }}
-                  onOpenHistory={(a) => {
-                    setActiveAgent(a);
-                    setIsDetailOpen(true);
-                  }}
-                  onDelete={handleDeleteAgent}
-                  onLikeToggle={handleLikeToggle}
-                />
-              ))}
+          </div>
+
+          {/* Вкладка 3: Поиск и AI Модели (мобильные) */}
+          <div className={\`md:hidden flex flex-col gap-4 \${mobileTab === "search" ? "block" : "hidden"}\`}>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Поиск по тегам, задачам или авторам..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
             </div>
-          )}
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 select-none hide-scrollbar">
+              {MODELS.map(m => {
+                const isActive = activeModel === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setActiveModel(m.id)}
+                    className={\`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold \${
+                      isActive 
+                        ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
+                        : "bg-slate-900/40 border-slate-800/80 text-slate-400"
+                    }\`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setMobileTab("feed")}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold text-sm"
+            >
+              Перейти к результатам ({filteredAgents.length})
+            </button>
+          </div>
+
+          {/* Вкладка 4: Мобильный Профиль (мобильные) */}
+          <div className={\`md:hidden flex flex-col gap-4 \${mobileTab === "profile" ? "block" : "hidden"}\`}>
+            {user ? (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 glass">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-xs text-slate-950 font-bold uppercase">
+                    {user.username.slice(0, 2)}
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-slate-200">@{user.username}</p>
+                    <p className="text-xs text-slate-500">Промпт-инженер</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 italic leading-relaxed break-words bg-slate-950/40 p-3 rounded-xl border border-slate-850">
+                  {user.bio || "Биография не указана."}
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => setIsBioOpen(true)}
+                    className="flex items-center justify-center gap-2 bg-slate-800 text-slate-300 py-3 rounded-xl text-xs font-bold border border-slate-700"
+                  >
+                    <Settings className="h-4 w-4" />
+                    О себе
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center justify-center gap-2 bg-red-950/20 text-red-400 py-3 rounded-xl text-xs font-bold border border-red-900/40"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Выйти
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 text-center glass">
+                <p className="text-sm text-slate-400 mb-4">Войдите в личный профиль для публикации и оценки промптов.</p>
+                <button
+                  onClick={() => setIsAuthOpen(true)}
+                  className="bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm"
+                >
+                  Авторизоваться
+                </button>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
-      {/* Модалки */}
+      {/* ================= MOBILE BOTTOM TAB BAR NAVIGATION ================= */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-slate-950/95 border-t border-slate-850/80 glass pb-safe z-40">
+        <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
+          <button
+            onClick={() => setMobileTab("feed")}
+            className={\`flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition-all \${
+              mobileTab === "feed" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }\`}
+          >
+            <Terminal className="h-5 w-5" />
+            <span>Лента</span>
+          </button>
+
+          <button
+            onClick={() => setMobileTab("categories")}
+            className={\`flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition-all \${
+              mobileTab === "categories" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }\`}
+          >
+            <Compass className="h-5 w-5" />
+            <span>Разделы</span>
+          </button>
+
+          {user && (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-indigo-400 hover:text-indigo-300 transition-all active:scale-95"
+            >
+              <PlusCircle className="h-7 w-7 fill-indigo-950" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setMobileTab("search")}
+            className={\`flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition-all \${
+              mobileTab === "search" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }\`}
+          >
+            <Search className="h-5 w-5" />
+            <span>Поиск</span>
+          </button>
+
+          <button
+            onClick={() => setMobileTab("profile")}
+            className={\`flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition-all \${
+              mobileTab === "profile" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }\`}
+          >
+            <User className="h-5 w-5" />
+            <span>Кабинет</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Модальные окна */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onSuccess={(userData) => {
           setUser({ ...userData, bio: "" });
           checkSession();
+          setMobileTab("feed");
         }}
       />
 
@@ -1221,15 +1025,15 @@ export default function Home() {
   writeProjectFile('src/app/page.tsx', updatedMainPage);
 
   console.log('\n======================================================');
-  console.log('СИСТЕМА КАТЕГОРИЗАЦИИ УСПЕШНО ОБНОВЛЕНА!');
+  console.log('МОБИЛЬНАЯ ВЕРСИЯ УСПЕШНО ОПТИМИЗИРОВАНА!');
   console.log('======================================================');
-  console.log('Нововведения:');
-  console.log('1. Внедрены 12 специализированных сфер применения промптов.');
-  console.log('2. Добавлена сортировка и фильтрация по целевой AI-модели (GPT-4, Claude и др.).');
-  console.log('3. Реализована поддержка тегов (#nextjs, #seo) с удобным поиском.');
-  console.log('4. Структура БД плавно мигрирована без потери старых данных.\n');
+  console.log('Ключевые изменения:');
+  console.log('1. Внедрен удобный нижний Bottom Tab Bar для мобильных устройств.');
+  console.log('2. Сайдбары и разделы оптимизированы под мобильный контент.');
+  console.log('3. Все модальные окна адаптированы под паттерн Bottom Sheet (выдвижные шторки).');
+  console.log('4. Увеличены тач-таргеты кнопок управления для удобства клика пальцами.\n');
 
 } catch (error) {
-  console.error('[FATAL ERROR] Не удалось применить патч категорий:', error.message);
+  console.error('[FATAL ERROR] Ошибка при оптимизации мобильной версии:', error.message);
   process.exit(1);
 }
