@@ -234,6 +234,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("language") as Language;
     if (saved === "ru" || saved === "en") {
       setLanguageState(saved);
+    } else {
+      try {
+        const systemLang = navigator.language || (navigator as any).userLanguage;
+        if (systemLang) {
+          const parsedLang = systemLang.toLowerCase().startsWith("ru") ? "ru" : "en";
+          setLanguageState(parsedLang);
+        }
+      } catch (e) {
+        console.error("System language detection error:", e);
+      }
     }
   }, []);
 
