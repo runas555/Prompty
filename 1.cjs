@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('=== ЗАПУСК ПАТЧА ОПТИМИЗАЦИИ МОБИЛЬНОЙ ВЕРСИИ ===\n');
+console.log('=== ЗАПУСК ПАТЧА КОМПАКТНОГО ДИЗАЙНА КАРТОЧЕК ===\n');
 
 try {
   // Вспомогательная функция для безопасной записи файлов
@@ -15,212 +15,10 @@ try {
     console.log(`[UPDATED] ${filePath}`);
   }
 
-  // 1. Обновление глобальных стилей: src/app/globals.css (Адаптация безопасных зон для iOS/Android)
-  const updatedGlobals = `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
-  background-color: #080c14;
-  color: #f1f5f9;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  /* Предотвращаем горизонтальный скролл на мобильных устройствах */
-  overflow-x: hidden; 
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #080c14;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-}
-
-/* Эффект матового стекла (glassmorphism) */
-.glass {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-/* Безопасный отступ снизу для мобильных экранов с вырезом */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Скрытие скроллбара для горизонтального меню */
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}`;
-  writeProjectFile('src/app/globals.css', updatedGlobals);
-
-  // 2. Оптимизация шапки: src/components/Header.tsx (Минималистичный вид на мобильных экранах)
-  const updatedHeader = `import React from "react";
-import { Terminal } from "lucide-react";
-
-interface HeaderProps {
-  user: { id: string; username: string; bio: string } | null;
-  onLoginClick: () => void;
-  onOpenAddModal: () => void;
-  totalAgents: number;
-}
-
-export default function Header({
-  user,
-  onLoginClick,
-  onOpenAddModal,
-  totalAgents
-}: HeaderProps) {
-  return (
-    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 w-full transition-all duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center text-slate-950 shadow-lg shadow-indigo-500/20">
-              <Terminal className="h-4.5 w-4.5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                PromptSocial
-              </h1>
-              <p className="hidden sm:block text-[10px] text-slate-500 font-medium">
-                Каталог системных промптов ({totalAgents} агентов)
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Кнопка "Создать" в шапке показывается только на Desktop, на мобилках она вынесена навигацией */}
-            <button
-              onClick={user ? onOpenAddModal : onLoginClick}
-              className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:opacity-90 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition-all duration-200 active:scale-95"
-            >
-              Поделиться
-            </button>
-            
-            {!user && (
-              <button
-                onClick={onLoginClick}
-                className="md:hidden flex items-center justify-center bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
-              >
-                Войти
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}`;
-  writeProjectFile('src/components/Header.tsx', updatedHeader);
-
-  // 3. Обновление Сайдбара: src/components/Sidebar.tsx (Скрытие на мобильных экранах)
-  const updatedSidebar = `import React from "react";
-import { 
-  Layers, Code, PenTool, Image, Music, Laptop, 
-  BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
-  CheckSquare, HelpCircle 
-} from "lucide-react";
-
-interface SidebarProps {
-  activeCategory: string;
-  setActiveCategory: (category: string) => void;
-  user: { id: string; username: string; bio: string } | null;
-  totalPromptsCount: number;
-}
-
-export const CATEGORIES = [
-  { id: "all", label: "Все категории", icon: Layers },
-  { id: "coding", label: "Программирование", icon: Code },
-  { id: "writing", label: "Тексты и переводы", icon: PenTool },
-  { id: "art", label: "Генерация артов", icon: Image },
-  { id: "audio-video", label: "Аудио и видеогенерация", icon: Music },
-  { id: "assistant", label: "Бизнес-ассистенты", icon: Laptop },
-  { id: "marketing", label: "Маркетинг, SEO и SMM", icon: BarChart2 },
-  { id: "education", label: "Обучение и наука", icon: BookOpen },
-  { id: "agents", label: "Автономные агенты", icon: Cpu },
-  { id: "security", label: "Безопасность и Jailbreak", icon: ShieldAlert },
-  { id: "creative", label: "Творчество и ролевые", icon: Sparkles },
-  { id: "productivity", label: "Личная эффективность", icon: CheckSquare },
-  { id: "other", label: "Разное", icon: HelpCircle }
-];
-
-export default function Sidebar({
-  activeCategory,
-  setActiveCategory,
-  user,
-  totalPromptsCount
-}: SidebarProps) {
-  return (
-    <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
-        <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
-        {user ? (
-          <div className="relative z-10 flex flex-col gap-2.5">
-            <p className="text-sm font-bold text-slate-200">@{user.username}</p>
-            <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
-              {user.bio || "Биография не указана. Заполните её в настройках."}
-            </p>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-400 relative z-10 leading-relaxed">
-            Авторизуйтесь, чтобы публиковать свои промпты, вести обсуждения и ставить лайки.
-          </p>
-        )}
-      </div>
-
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 glass">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2 mb-3">Категории</h3>
-        <nav className="flex flex-col gap-1 max-h-[420px] overflow-y-auto pr-1">
-          {CATEGORIES.map(cat => {
-            const Icon = cat.icon;
-            const isActive = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={\`flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 \${
-                  isActive
-                    ? "bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/15"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }\`}
-              >
-                <Icon className={\`h-4 w-4 shrink-0 \${isActive ? "text-white" : "text-slate-400"}\`} />
-                <span className="truncate">{cat.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="text-xs text-slate-500 px-4">
-        <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.2</p>
-      </div>
-    </aside>
-  );
-}`;
-  writeProjectFile('src/components/Sidebar.tsx', updatedSidebar);
-
-  // 4. Оптимизация карточки агента: src/components/AgentCard.tsx (Увеличенные тач-зоны и адаптивные отступы)
-  const updatedAgentCard = `import React, { useState } from "react";
-import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2 } from "lucide-react";
-import { formatDateTime, getUserGradient } from "@/lib/utils";
+  // 1. Полный редизайн карточки: src/components/AgentCard.tsx (Compact Premium)
+  const compactAgentCard = `import React, { useState } from "react";
+import { Heart, MessageSquare, Copy, Check, Edit, Trash2 } from "lucide-react";
+import { getUserGradient } from "@/lib/utils";
 
 export interface Agent {
   id: string;
@@ -251,12 +49,12 @@ interface AgentCardProps {
 }
 
 const MODEL_LABELS: Record<string, string> = {
-  any: "Универсальный",
-  gpt4: "GPT-4 / 4o",
-  claude: "Claude 3.5",
-  gemini: "Gemini Pro",
-  llama: "LLaMA / DeepSeek",
-  midjourney: "Midjourney"
+  any: "Any",
+  gpt4: "GPT-4",
+  claude: "Claude",
+  gemini: "Gemini",
+  llama: "LLaMA",
+  midjourney: "MJ"
 };
 
 export default function AgentCard({
@@ -272,7 +70,7 @@ export default function AgentCard({
   const isOwner = currentUser?.id === agent.userId;
 
   const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Исключаем клик по самой карточке
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(agent.prompt);
@@ -312,40 +110,43 @@ export default function AgentCard({
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between h-[340px] sm:h-[390px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300 glass">
-      <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent pointer-events-none" />
+    <div 
+      onClick={() => onOpenHistory(agent)}
+      className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex flex-col justify-between h-[210px] sm:h-[235px] relative group overflow-hidden hover:border-indigo-500/40 hover:bg-slate-900/70 transition-all duration-350 cursor-pointer glass select-none"
+    >
+      {/* Мягкое боковое свечение на ховере */}
+      <div className="absolute -inset-px bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
+        {/* Плотная верхняя строка метаданных */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={\`h-7 w-7 rounded-lg bg-gradient-to-tr \${getUserGradient(agent.username)} flex items-center justify-center text-[10px] text-slate-950 font-extrabold uppercase shrink-0\`}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={\`h-6 w-6 rounded bg-gradient-to-tr \${getUserGradient(agent.username)} flex items-center justify-center text-[9px] text-slate-950 font-black uppercase shrink-0\`}>
                 {agent.username.slice(0, 2)}
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-300 truncate">@{agent.username}</p>
-                <p className="hidden sm:block text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промптер"}</p>
-              </div>
+              <span className="text-xs font-bold text-slate-300 truncate">@{agent.username}</span>
             </div>
-            
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-950/40 border border-indigo-900 px-2 py-0.5 rounded-full uppercase">
+
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="inline-flex items-center text-[8px] font-extrabold text-indigo-400 bg-indigo-950/30 border border-indigo-900/50 px-1.5 py-0.5 rounded uppercase">
                 v{agent.version}
               </span>
-              <span className="inline-flex items-center text-[9px] font-extrabold text-cyan-400 bg-cyan-950/40 border border-cyan-900 px-2 py-0.5 rounded-full uppercase">
-                {MODEL_LABELS[agent.model] || "Модель"}
+              <span className="inline-flex items-center text-[8px] font-extrabold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-1.5 py-0.5 rounded uppercase">
+                {MODEL_LABELS[agent.model] || "Model"}
               </span>
             </div>
           </div>
 
-          <h3 className="font-bold text-slate-100 text-sm sm:text-base truncate mb-1">
+          <h3 className="font-bold text-slate-100 text-sm truncate leading-snug mb-1">
             {highlight(agent.name, highlightText)}
           </h3>
 
+          {/* Компактные теги */}
           {agent.tags && agent.tags.trim() && (
-            <div className="flex flex-wrap gap-1 mb-2 max-h-5 overflow-hidden">
+            <div className="flex flex-wrap gap-1 mb-2 max-h-[16px] overflow-hidden">
               {agent.tags.split(",").map((tag, idx) => (
-                <span key={idx} className="text-[9px] sm:text-[10px] text-slate-400 font-medium bg-slate-800/40 px-1.5 py-0.5 rounded">
+                <span key={idx} className="text-[9px] text-slate-500 font-semibold">
                   #{tag.trim()}
                 </span>
               ))}
@@ -353,64 +154,61 @@ export default function AgentCard({
           )}
         </div>
 
-        {/* Текст промпта */}
-        <div className="flex-1 bg-slate-950 p-3 sm:p-4 rounded-xl text-xs sm:text-sm text-slate-300 border border-slate-850 overflow-y-auto mb-3 sm:mb-4 font-mono text-[11px] sm:text-[12px] opacity-90 select-text leading-relaxed">
+        {/* Плотное, низкое превью кода с градиентным затуханием (fade-out) */}
+        <div className="relative flex-1 bg-slate-950/70 rounded-lg py-2 px-2.5 text-[11px] text-slate-400 border border-slate-850 overflow-hidden font-mono select-text leading-relaxed max-h-[50px] sm:max-h-[64px] mb-3">
           <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
+          {/* Градиентная маска для эффекта затухания вниз */}
+          <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
         </div>
 
-        {/* Действия и метрики - увеличены тач-зоны до 40px+ */}
-        <div className="flex items-center justify-between gap-3 border-t border-slate-800/60 pt-2.5 sm:pt-3">
-          <div className="flex items-center gap-2">
+        {/* Плотная нижняя панель действий с аккуратными тач-зонами */}
+        <div className="flex items-center justify-between gap-2 border-t border-slate-800/50 pt-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1">
+            {/* Лайк */}
             <button
               onClick={() => onLikeToggle(agent.id, agent.hasLiked)}
-              className={\`flex items-center justify-center gap-1.5 text-xs font-semibold h-10 px-3 rounded-xl transition-colors \${
+              className={\`flex items-center gap-1 text-[11px] font-bold h-7 px-2.5 rounded-lg transition-colors \${
                 agent.hasLiked 
-                  ? "text-rose-400 bg-rose-950/20" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 bg-slate-900/40 border border-slate-800/50"
+                  ? "text-rose-400 bg-rose-950/25" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
               }\`}
             >
-              <Heart className={\`h-4.5 w-4.5 \${agent.hasLiked ? "fill-rose-400 text-rose-400" : ""}\`} />
+              <Heart className={\`h-3.5 w-3.5 \${agent.hasLiked ? "fill-rose-400 text-rose-400" : ""}\`} />
               <span>{agent.likeCount}</span>
             </button>
 
+            {/* Комментарии */}
             <button
               onClick={() => onOpenHistory(agent)}
-              className="flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 h-10 px-3 rounded-xl bg-slate-900/40 border border-slate-800/50 hover:bg-slate-800/40"
+              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200 h-7 px-2.5 rounded-lg hover:bg-slate-800/40"
             >
-              <MessageSquare className="h-4.5 w-4.5" />
+              <MessageSquare className="h-3.5 w-3.5" />
               <span>{agent.commentCount}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {isOwner && (
               <>
                 <button
-                  onClick={(e) => { e.stopPropagation(); onEdit(agent); }}
-                  className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-xl border border-slate-800/50 transition-all"
+                  onClick={() => onEdit(agent)}
+                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all"
                   title="Редактировать"
                 >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(agent.id); }}
-                  className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-xl border border-slate-800/50 transition-all"
-                  title="Удалить"
-                >
-                  <Trash2 className="h-4 w-4" />
+                  <Edit className="h-3.5 w-3.5" />
                 </button>
               </>
             )}
 
             <button
               onClick={handleCopy}
-              className={\`flex items-center gap-1.5 text-xs font-bold h-10 px-4 rounded-xl shadow-sm active:scale-95 transition-all duration-200 \${
+              className={\`flex items-center gap-1 text-[10px] font-bold h-7 px-3.5 rounded-lg active:scale-95 transition-all duration-200 \${
                 copied
-                  ? "bg-emerald-950 border border-emerald-800 text-emerald-300"
-                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                  ? "bg-emerald-950/80 text-emerald-300 border border-emerald-900/60"
+                  : "bg-indigo-600/80 hover:bg-indigo-600 text-white"
               }\`}
             >
-              {copied ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3 w-3 stroke-[2.5]" /> : null}
               <span>{copied ? "ОК" : "Копировать"}</span>
             </button>
           </div>
@@ -419,47 +217,9 @@ export default function AgentCard({
     </div>
   );
 }`;
-  writeProjectFile('src/components/AgentCard.tsx', updatedAgentCard);
+  writeProjectFile('src/components/AgentCard.tsx', compactAgentCard);
 
-  // 5. Оптимизация модалок: Модифицируем AuthModal, PostModal, DetailModal и BioModal под Bottom Sheets (снизу на мобилках)
-  const convertToBottomSheet = (filePath) => {
-    if (!fs.existsSync(filePath)) return;
-    let code = fs.readFileSync(filePath, 'utf8');
-    
-    // Меняем контейнер модалки, чтобы на мобилках он прилипал к низу
-    code = code.replace(
-      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"',
-      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[92vh] sm:max-h-[90vh] bottom-0 sm:bottom-auto absolute sm:relative"'
-    );
-    code = code.replace(
-      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl z-10 flex flex-col"',
-      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] overflow-hidden shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative"'
-    );
-    code = code.replace(
-      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl z-10 overflow-hidden"',
-      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl z-10 overflow-hidden bottom-0 sm:bottom-auto absolute sm:relative"'
-    );
-    code = code.replace(
-      'className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col"',
-      'className="relative bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl z-10 flex flex-col bottom-0 sm:bottom-auto absolute sm:relative"'
-    );
-
-    // Центрирование модалок во весь экран на мобильных устройствах
-    code = code.replace(
-      'className="fixed inset-0 z-50 flex items-center justify-center p-4"',
-      'className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"'
-    );
-
-    fs.writeFileSync(filePath, code, 'utf8');
-    console.log(`[BOTTOM SHEET UX APPLIED] ${filePath}`);
-  };
-
-  convertToBottomSheet('src/components/AuthModal.tsx');
-  convertToBottomSheet('src/components/PostModal.tsx');
-  convertToBottomSheet('src/components/DetailModal.tsx');
-  convertToBottomSheet('src/components/BioModal.tsx');
-
-  // 6. Обновление Главного Модуля: src/app/page.tsx (Внедрение Bottom Tab Bar и контекстного рендеринга разделов)
+  // 2. Обновление Главного Экрана: src/app/page.tsx (Расширение сетки до трех колонок на больших мониторах)
   const updatedMainPage = `"use client";
 
 import React, { useState, useEffect } from "react";
@@ -470,10 +230,7 @@ import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
 import BioModal from "@/components/BioModal";
-import { 
-  AlertCircle, Terminal, Search, Layers, 
-  User, Settings, LogOut, PlusCircle, Compass 
-} from "lucide-react";
+import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
 const MODELS = [
   { id: "all", label: "Все ИИ модели" },
@@ -711,8 +468,6 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
-        
-        {/* Сайдбар скрыт на мобильных устройствах, заменяясь на Bottom Navigation */}
         <Sidebar
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
@@ -742,11 +497,11 @@ export default function Home() {
                   <button
                     key={m.id}
                     onClick={() => setActiveModel(m.id)}
-                    className={\`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold \${
+                    className={\"text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold \" + (
                       isActive 
                         ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200"
-                    }\`}
+                    )}
                   >
                     {m.label}
                   </button>
@@ -767,13 +522,13 @@ export default function Home() {
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {[1, 2].map(i => (
-                  <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[340px] animate-pulse" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-5 h-[235px] animate-pulse" />
                 ))}
               </div>
             ) : filteredAgents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto">
+              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto animate-fadeIn">
                 <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
                   <Terminal className="h-7 w-7 stroke-[1.5]" />
                 </div>
@@ -781,7 +536,8 @@ export default function Home() {
                 <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой секции!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              // Сетка заменена на трехколоночную на больших экранах
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {filteredAgents.map(agent => (
                   <AgentCard
                     key={agent.id}
@@ -1025,15 +781,15 @@ export default function Home() {
   writeProjectFile('src/app/page.tsx', updatedMainPage);
 
   console.log('\n======================================================');
-  console.log('МОБИЛЬНАЯ ВЕРСИЯ УСПЕШНО ОПТИМИЗИРОВАНА!');
+  console.log('РЕСТАЙЛИНГ КАРТОЧЕК УСПЕШНО ЗАВЕРШЕН!');
   console.log('======================================================');
-  console.log('Ключевые изменения:');
-  console.log('1. Внедрен удобный нижний Bottom Tab Bar для мобильных устройств.');
-  console.log('2. Сайдбары и разделы оптимизированы под мобильный контент.');
-  console.log('3. Все модальные окна адаптированы под паттерн Bottom Sheet (выдвижные шторки).');
-  console.log('4. Увеличены тач-таргеты кнопок управления для удобства клика пальцами.\n');
+  console.log('Изменения:');
+  console.log('1. Высота карточек уменьшена до ультракомпактных 210px-240px.');
+  console.log('2. Интегрировано градиентное затухание (fade-out) длинного текста в превью.');
+  console.log('3. Вся область карточки стала кликабельной на открытие обсуждения и деталей.');
+  console.log('4. Перестроена сетка: на десктопе теперь выводится 3 аккуратные колонки карточек.\n');
 
 } catch (error) {
-  console.error('[FATAL ERROR] Ошибка при оптимизации мобильной версии:', error.message);
+  console.error('[FATAL ERROR] Не удалось применить патч компактного дизайна:', error.message);
   process.exit(1);
 }

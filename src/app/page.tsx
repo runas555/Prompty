@@ -8,10 +8,7 @@ import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
 import BioModal from "@/components/BioModal";
-import { 
-  AlertCircle, Terminal, Search, Layers, 
-  User, Settings, LogOut, PlusCircle, Compass 
-} from "lucide-react";
+import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
 const MODELS = [
   { id: "all", label: "Все ИИ модели" },
@@ -249,8 +246,6 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
-        
-        {/* Сайдбар скрыт на мобильных устройствах, заменяясь на Bottom Navigation */}
         <Sidebar
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
@@ -280,11 +275,11 @@ export default function Home() {
                   <button
                     key={m.id}
                     onClick={() => setActiveModel(m.id)}
-                    className={`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold ${
+                    className={"text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold " + (
                       isActive 
                         ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200"
-                    }`}
+                    )}
                   >
                     {m.label}
                   </button>
@@ -305,13 +300,13 @@ export default function Home() {
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {[1, 2].map(i => (
-                  <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[340px] animate-pulse" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-xl p-5 h-[235px] animate-pulse" />
                 ))}
               </div>
             ) : filteredAgents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto">
+              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto animate-fadeIn">
                 <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
                   <Terminal className="h-7 w-7 stroke-[1.5]" />
                 </div>
@@ -319,7 +314,8 @@ export default function Home() {
                 <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой секции!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              // Сетка заменена на трехколоночную на больших экранах
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {filteredAgents.map(agent => (
                   <AgentCard
                     key={agent.id}
