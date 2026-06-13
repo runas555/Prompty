@@ -1,147 +1,67 @@
 const fs = require('fs');
 const path = require('path');
 
-const sidebarPath = path.join(__dirname, 'src/components/Sidebar.tsx');
+const cardPath = path.join(__dirname, 'src/components/AgentCard.tsx');
 
-const sidebarContent = `import React from "react";
-import { 
-  Layers, Code, PenTool, Image, Music, Laptop, 
-  BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
-  CheckSquare, HelpCircle, Settings, LogOut 
-} from "lucide-react";
+function applySEOPatch() {
+  if (!fs.existsSync(cardPath)) {
+    console.log('[ОШИБКА] Файл AgentCard.tsx не найден');
+    return;
+  }
 
-interface SidebarProps {
-  activeCategory: string;
-  setActiveCategory: (category: string) => void;
-  user: { id: string; username: string; bio: string; avatar: string } | null;
-  totalPromptsCount: number;
-  onSettingsClick?: () => void;
-  onLogoutClick?: () => void;
+  let content = fs.readFileSync(cardPath, 'utf8');
+
+  // Избегаем повторного применения
+  if (content.includes('itemProp="name"')) {
+    console.log('[ПРОПУЩЕНО] SEO-разметка уже присутствует в AgentCard.tsx');
+    return;
+  }
+
+  console.log('Начало внедрения семантической разметки...');
+
+  // 1. Замена корневого div на article с указанием схемы CreativeWork
+  // Ищем начало блока div, который имеет onClick и специфические классы
+  const rootDivRegex = /<div\s+onClick=\{\(\)\s*=>\s*onOpenHistory\(agent\)\}\s+className="([^"]*)"\s*>/;
+  content = content.replace(rootDivRegex, (match, classes) => {
+    return `<article 
+      itemScope 
+      itemType="https://schema.org/CreativeWork" 
+      onClick={() => onOpenHistory(agent)} 
+      className="${classes}"
+    >`;
+  });
+
+  // Заменяем закрывающий тег в самом конце функции (перед последней скобкой return)
+  // Мы ищем последнюю комбинацию </div> перед последним );
+  const lastDivRegex = /<\/div>\s*(\s*\);\s*\})/;
+  content = content.replace(lastDivRegex, '</article>$1');
+
+  // 2. Разметка автора
+  const authorRegex = /<span\s+className="text-xs font-bold text-slate-300 truncate">(@\{agent\.username\})<\/span>/;
+  content = content.replace(authorRegex, '<span itemProp="author" className="text-xs font-bold text-slate-300 truncate">$1</span>');
+
+  // 3. Разметка названия промпта (Заголовок)
+  const titleRegex = /<h3\s+className="([^"]+)">/;
+  content = content.replace(titleRegex, '<h3 itemProp="name" className="$1">');
+
+  // 4. Разметка текста промпта
+  const promptRegex = /<p\s+className="whitespace-pre-wrap select-text">(\{highlight\(agent\.prompt, highlightText\)\})<\/p>/;
+  content = content.replace(promptRegex, '<p itemProp="text" className="whitespace-pre-wrap select-text">$1</p>');
+
+  // 5. Добавление скрытых мета-данных для роботов (Дата публикации)
+  const metaDateAnchor = '<div className="relative z-10 flex flex-col h-full justify-between">';
+  if (content.includes(metaDateAnchor)) {
+    content = content.replace(metaDateAnchor, metaDateAnchor + `
+        <meta itemProp="datePublished" content={new Date(agent.createdAt).toISOString()} />`);
+  }
+
+  try {
+    fs.writeFileSync(cardPath, content, 'utf8');
+    console.log('[УСПЕШНО] AgentCard.tsx теперь использует семантическую разметку (article + Schema.org)');
+    console.log('[ИНФО] Поисковики теперь будут видеть карточки как самостоятельные публикации.');
+  } catch (err) {
+    console.error('[ОШИБКА] Не удалось сохранить изменения:', err.message);
+  }
 }
 
-export const CATEGORIES = [
-  { id: "all", label: "Все категории", icon: Layers },
-  { id: "coding", label: "Программирование", icon: Code },
-  { id: "writing", label: "Тексты и переводы", icon: PenTool },
-  { id: "art", label: "Генерация артов", icon: Image },
-  { id: "audio-video", label: "Аудио и видеогенерация", icon: Music },
-  { id: "assistant", label: "Бизнес-ассистенты", icon: Laptop },
-  { id: "marketing", label: "Маркетинг, SEO и SMM", icon: BarChart2 },
-  { id: "education", label: "Обучение и наука", icon: BookOpen },
-  { id: "agents", label: "Автономные агенты", icon: Cpu },
-  { id: "security", label: "Безопасность и Jailbreak", icon: ShieldAlert },
-  { id: "creative", label: "Творчество и ролевые", icon: Sparkles },
-  { id: "productivity", label: "Личная эффективность", icon: CheckSquare },
-  { id: "other", label: "Разное", icon: HelpCircle }
-];
-
-export default function Sidebar({
-  activeCategory,
-  setActiveCategory,
-  user,
-  totalPromptsCount,
-  onSettingsClick,
-  onLogoutClick
-}: SidebarProps) {
-  return (
-    <aside className="hidden md:flex w-64 flex-col gap-6 shrink-0">
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden glass">
-        <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
-        {user ? (
-          <div className="relative z-10 flex flex-col gap-3">
-            <div className="flex items-center gap-2.5">
-              {user.avatar ? (
-                <img 
-                  src={user.avatar} 
-                  alt="Profile" 
-                  className="h-8 w-8 rounded-lg object-cover border border-slate-800"
-                />
-              ) : (
-                <div className="h-8 w-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                  {user.username.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-              <p className="text-sm font-bold text-slate-200">@{user.username}</p>
-            </div>
-            <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
-              {user.bio || "Биография не указана. Заполните её в настройках."}
-            </p>
-            
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60">
-              <button
-                type="button"
-                onClick={onSettingsClick}
-                className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-all active:scale-95"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                Настройки
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (onLogoutClick) {
-                    onLogoutClick();
-                  } else {
-                    try {
-                      await fetch("/api/auth/logout", { method: "POST" });
-                      window.location.reload();
-                    } catch (err) {
-                      console.error("Logout error:", err);
-                    }
-                  }
-                }}
-                className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-red-400 transition-all active:scale-95 ml-auto"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Выйти
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-400 relative z-10 leading-relaxed">
-            Авторизуйтесь, чтобы публиковать свои промпты, вести обсуждения и ставить лайки.
-          </p>
-        )}
-      </div>
-
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 glass">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2 mb-3">Категории</h3>
-        <nav className="flex flex-col gap-1 max-h-[420px] overflow-y-auto pr-1">
-          {CATEGORIES.map(cat => {
-            const Icon = cat.icon;
-            const isActive = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={\`flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 \${
-                  isActive
-                    ? "bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/15"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }\`}
-              >
-                <Icon className={\`h-4 w-4 shrink-0 \${isActive ? "text-white" : "text-slate-400"}\`} />
-                <span className="truncate">{cat.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="text-xs text-slate-500 px-4">
-        <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.3</p>
-      </div>
-    </aside>
-  );
-}
-`;
-
-try {
-  fs.writeFileSync(sidebarPath, sidebarContent, 'utf8');
-  console.log('[УСПЕШНО] src/components/Sidebar.tsx полностью восстановлен и обновлен.');
-  console.log('Синтаксические ошибки устранены. Можно запускать билд.');
-} catch (err) {
-  console.error('[ОШИБКА] Не удалось записать файл:', err.message);
-}
+applySEOPatch();

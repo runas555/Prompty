@@ -93,13 +93,16 @@ export default function AgentCard({
   };
 
   return (
-    <div 
-      onClick={() => onOpenHistory(agent)}
+    <article 
+      itemScope 
+      itemType="https://schema.org/CreativeWork" 
+      onClick={() => onOpenHistory(agent)} 
       className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex flex-col justify-between h-[210px] sm:h-[235px] relative group overflow-hidden hover:border-indigo-500/40 hover:bg-slate-900/70 transition-all duration-350 cursor-pointer glass select-none"
     >
       <div className="absolute -inset-px bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
+        <meta itemProp="datePublished" content={new Date(agent.createdAt).toISOString()} />
         <div>
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -115,7 +118,7 @@ export default function AgentCard({
                   {agent.username.slice(0, 2)}
                 </div>
               )}
-              <span className="text-xs font-bold text-slate-300 truncate">@{agent.username}</span>
+              <span itemProp="author" className="text-xs font-bold text-slate-300 truncate">@{agent.username}</span>
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -128,7 +131,7 @@ export default function AgentCard({
             </div>
           </div>
 
-          <h3 className="font-bold text-slate-100 text-sm truncate leading-snug mb-1">
+          <h3 itemProp="name" className="font-bold text-slate-100 text-sm truncate leading-snug mb-1">
             {highlight(agent.name, highlightText)}
           </h3>
 
@@ -144,7 +147,7 @@ export default function AgentCard({
         </div>
 
         <div className="relative flex-1 bg-slate-950/70 rounded-lg py-2 px-2.5 text-[11px] text-slate-400 border border-slate-850 overflow-hidden font-mono select-text leading-relaxed max-h-[50px] sm:max-h-[64px] mb-3">
-          <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
+          <p itemProp="text" className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
           <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
         </div>
 
@@ -198,6 +201,5 @@ export default function AgentCard({
           </div>
         </div>
       </div>
-    </div>
-  );
+    </article>);
 }
