@@ -1,5 +1,5 @@
 import React from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, parseBio } from "@/lib/i18n";
 import { 
   Layers, Code, PenTool, Image, Music, Laptop, 
   BarChart2, BookOpen, Cpu, ShieldAlert, Sparkles, 
@@ -87,8 +87,11 @@ export default function Sidebar({
               )}
               <p className="text-sm font-bold text-slate-200">@{user.username}</p>
             </div>
+            <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider relative z-10 -mt-1.5">
+              {t("prof_" + parseBio(user.bio).profession)}
+            </p>
             <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
-              {user.bio || t("sidebarBioEmpty")}
+              {parseBio(user.bio).bioText || t("sidebarBioEmpty")}
             </p>
             
             <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-800/60">

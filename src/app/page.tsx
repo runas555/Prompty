@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, parseBio } from "@/lib/i18n";
 import Header from "@/components/Header";
 import Sidebar, { CATEGORIES } from "@/components/Sidebar";
 import AgentCard, { Agent } from "@/components/AgentCard";
@@ -471,12 +471,12 @@ export default function Home() {
                   )}
                   <div>
                     <p className="text-base font-bold text-slate-200">@{user.username}</p>
-                    <p className="text-xs text-slate-500">Промпт-инженер</p>
+                    <p className="text-xs text-slate-500">{t("prof_" + parseBio(user.bio).profession)}</p>
                   </div>
                 </div>
 
                 <p className="text-xs text-slate-400 italic leading-relaxed break-words bg-slate-950/40 p-3 rounded-xl border border-slate-850">
-                  {user.bio || t("profileBioEmpty")}
+                  {parseBio(user.bio).bioText || t("profileBioEmpty")}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 mt-2">

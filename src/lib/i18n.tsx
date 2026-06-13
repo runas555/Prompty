@@ -107,6 +107,13 @@ export const translations = {
     profileSaveSuccess: "Сохранить профиль",
     profileDbError: "Ошибка при записи профиля в базу данных.",
     profileConnectError: "Не удалось установить соединение.",
+    profileProfessionLabel: "Профессия / Роль",
+    prof_prompt_engineer: "Промпт-инженер",
+    prof_developer: "Разработчик",
+    prof_copywriter: "Копирайтер",
+    prof_designer: "Дизайнер",
+    prof_marketer: "Маркетолог",
+    prof_data_scientist: "Data Scientist",
     catAll: "Все категории",
     catCoding: "Программирование",
     catWriting: "Тексты и переводы",
@@ -215,6 +222,13 @@ export const translations = {
     profileSaveSuccess: "Save Profile",
     profileDbError: "Error writing profile to database.",
     profileConnectError: "Failed to establish connection.",
+    profileProfessionLabel: "Profession / Role",
+    prof_prompt_engineer: "Prompt Engineer",
+    prof_developer: "Developer",
+    prof_copywriter: "Copywriter",
+    prof_designer: "Designer",
+    prof_marketer: "Marketer",
+    prof_data_scientist: "Data Scientist",
     catAll: "All Categories",
     catCoding: "Coding",
     catWriting: "Texts & Translations",
@@ -288,4 +302,13 @@ export function getLocalizedName(fullName: string, language: "ru" | "en"): strin
     }
   }
   return fullName;
+}
+
+export function parseBio(fullBio: string): { profession: string; bioText: string } {
+  if (!fullBio) return { profession: "prompt_engineer", bioText: "" };
+  const parts = fullBio.split("|||");
+  if (parts.length > 1) {
+    return { profession: parts[0], bioText: parts[1] };
+  }
+  return { profession: "prompt_engineer", bioText: fullBio };
 }

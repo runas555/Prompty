@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "@/lib/i18n";
-import { X, AlertCircle, Camera, Check } from "lucide-react";
+import { X, AlertCircle, Camera } from "lucide-react";
+import { useLanguage, parseBio } from "@/lib/i18n";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -10,9 +12,19 @@ interface ProfileModalProps {
   currentAvatar: string;
 }
 
+const PROFESSIONS = [
+  { id: "prompt_engineer", label: "Промпт-инженер", labelEn: "Prompt Engineer" },
+  { id: "developer", label: "Разработчик", labelEn: "Developer" },
+  { id: "copywriter", label: "Копирайтер", labelEn: "Copywriter" },
+  { id: "designer", label: "Дизайнер", labelEn: "Designer" },
+  { id: "marketer", label: "Маркетолог", labelEn: "Marketer" },
+  { id: "data_scientist", label: "Data Scientist", labelEn: "Data Scientist" }
+];
+
 export default function ProfileModal({ isOpen, onClose, onSave, currentBio, currentAvatar }: ProfileModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [bio, setBio] = useState("");
+  const [profession, setProfession] = useState("prompt_engineer");
   const [avatar, setAvatar] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,7 +32,9 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
 
   useEffect(() => {
     if (isOpen) {
-      setBio(currentBio);
+      const parsed = parseBio(currentBio);
+      setBio(parsed.bioText);
+      setProfession(parsed.profession || "prompt_engineer");
       setAvatar(currentAvatar);
       setError("");
       fetchStats();
@@ -39,7 +53,6 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
 
   if (!isOpen) return null;
 
-  // Логика клиентского сжатия загружаемой фотографии через HTML5 Canvas
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,20 +67,17 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const size = 128; // Сжимаем до компактного размера 128х128 для мгновенного сохранения в БД
+        const size = 128;
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext("2d");
         
         if (ctx) {
-          // Квадратный кроп по центру кадра
           const minSide = Math.min(img.width, img.height);
           const sx = (img.width - minSide) / 2;
           const sy = (img.height - minSide) / 2;
           
           ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-          
-          // Получаем Base64 сжатой jpeg-картинки (70% качества)
           const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
           setAvatar(compressedBase64);
         }
@@ -82,7 +92,8 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
     setLoading(true);
     setError("");
     try {
-      const success = await onSave(bio.trim(), avatar);
+      const serializedBio = `${profession}|||${bio.trim()}`;
+      const success = await onSave(serializedBio, avatar);
       if (success) {
         onClose();
       } else {
@@ -107,7 +118,7 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
         <h3 className="text-lg font-bold text-slate-100 mb-2">{t("profileTitle")}</h3>
         <p className="text-xs text-slate-500 mb-5">{t("profileSub")}</p>
 
-        {/* Секция статистики */}
+        {/* Statistics Section */}
         <div className="grid grid-cols-3 gap-2 bg-slate-950/50 border border-slate-850 p-3 rounded-xl mb-5 text-center">
           <div>
             <div className="text-sm font-bold text-indigo-400">{stats.promptsCount}</div>
@@ -131,7 +142,7 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
             </div>
           )}
 
-          {/* Загрузчик Аватара */}
+          {/* Avatar Loader */}
           <div className="flex items-center gap-4">
             <div className="relative group">
               {avatar ? (
@@ -161,7 +172,25 @@ export default function ProfileModal({ isOpen, onClose, onSave, currentBio, curr
             </div>
           </div>
 
+          {/* Profession Dropdown Selector */}
           <div className="flex flex-col gap-1.5 mt-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("profileProfessionLabel")}</label>
+            <select
+              value={profession}
+              onChange={(e) => setProfession(e.target.value)}
+              disabled={loading}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            >
+              {PROFESSIONS.map((prof) => (
+                <option key={prof.id} value={prof.id}>
+                  {language === "ru" ? prof.label : prof.labelEn}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Bio text */}
+          <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("profileBioLabel")}</label>
             <textarea
               placeholder={t("profileBioPlaceholder")}
