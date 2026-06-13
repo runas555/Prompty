@@ -1,11 +1,11 @@
 import React from "react";
-import { Terminal, Key, Search, Sparkles } from "lucide-react";
+import { Terminal, Search, LogOut, Sparkles, User } from "lucide-react";
 
 interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  adminToken: string;
-  setAdminToken: (token: string) => void;
+  username: string;
+  onLogout: () => void;
   onOpenAddModal: () => void;
   totalAgents: number;
 }
@@ -13,8 +13,8 @@ interface HeaderProps {
 export default function Header({
   searchQuery,
   setSearchQuery,
-  adminToken,
-  setAdminToken,
+  username,
+  onLogout,
   onOpenAddModal,
   totalAgents
 }: HeaderProps) {
@@ -32,12 +32,12 @@ export default function Header({
                 PromptHistorian
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                Каталог промптов с сохранением истории изменений ({totalAgents} агентов)
+                Индивидуальное пространство ({totalAgents} агентов)
               </p>
             </div>
           </div>
 
-          {/* Интерактивная Панель поиска, Токена и Создания */}
+          {/* Интерактивная Панель */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Поиск */}
             <div className="relative flex-1 sm:w-64">
@@ -51,19 +51,10 @@ export default function Header({
               />
             </div>
 
-            {/* Токен админа */}
-            <div className="relative">
-              <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <input
-                type="password"
-                placeholder="Секретный токен"
-                value={adminToken}
-                onChange={(e) => {
-                  setAdminToken(e.target.value);
-                  localStorage.setItem("admin_token_historian", e.target.value);
-                }}
-                className="w-full sm:w-44 bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all duration-200"
-              />
+            {/* Имя пользователя */}
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-sm text-slate-300">
+              <User className="h-4 w-4 text-cyan-400" />
+              <span className="font-semibold">{username}</span>
             </div>
 
             {/* Кнопка создания */}
@@ -73,6 +64,15 @@ export default function Header({
             >
               <Sparkles className="h-4 w-4 fill-slate-950" />
               Новый агент
+            </button>
+
+            {/* Выйти */}
+            <button
+              onClick={onLogout}
+              className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-900/80 border border-slate-800/80 rounded-lg transition-all duration-200"
+              title="Выйти из системы"
+            >
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>

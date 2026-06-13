@@ -1,32 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db, initDb } from "@/lib/db";
 import { generateUUID } from "@/lib/utils";
+import { verifyAuth } from "@/lib/auth";
 
-// Разрешаем CORS
-export async function OPTIONS() {
-  return NextResponse.json({}, { status: 200 });
-}
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await initDb();
-    
-    // Получаем список агентов с их самыми свежими версиями промптов
-    const queryResult = await db.execute(`
-      SELECT 
-        a.id, 
-        a.name, 
-        a.created_at,
-        pv.prompt, 
-        pv.version, 
-        pv.created_at as updated_at
-      FROM agents a
-      LEFT JOIN prompt_versions pv ON pv.agent_id = a.id
-      WHERE pv.version = (
-        SELECT MAX(version) FROM prompt_versions WHERE agent_id = a.id
-      )
-      ORDER BY a.created_at DESC
-    `);
+    const user = verifyAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
+    }
+
+    const queryResult = await db.execute({
+      sql: `
+        SELECT 
+          a.id, 
+          a.name, 
+          a.created_at,
+          pv.prompt, 
+          pv.version, 
+          pv.created_at as updated_at
+        FROM agents a
+        LEFT JOIN prompt_versions pv ON pv.agent_id = a.id
+        WHERE a.user_id = ? AND pv.version = (
+          SELECT MAX(version) FROM prompt_versions WHERE agent_id = a.id
+        )
+        ORDER BY a.created_at DESC
+      `,
+      args: [user.id]
+    });
 
     const agents = queryResult.rows.map(row => ({
       id: row.id as string,
@@ -44,29 +46,27 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     await initDb();
-    const { name, prompt, adminToken } = await request.json();
-
-    if (!name || !name.trim() || !prompt || !prompt.trim()) {
-      return NextResponse.json({ error: "Имя агента и промпт обязательны к заполнению" }, { status: 400 });
+    const user = verifyAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     }
 
-    // Проверка авторизации
-    const systemAdminToken = process.env.ADMIN_TOKEN;
-    if (systemAdminToken && systemAdminToken.trim() !== "" && systemAdminToken !== adminToken) {
-      return NextResponse.json({ error: "Неверный секретный токен администратора" }, { status: 401 });
+    const { name, prompt } = await request.json();
+
+    if (!name || !name.trim() || !prompt || !prompt.trim()) {
+      return NextResponse.json({ error: "Имя агента и промпт обязательны" }, { status: 400 });
     }
 
     const agentId = generateUUID();
     const versionId = generateUUID();
     const now = Date.now();
 
-    // Записываем агента в транзакции
     await db.execute({
-      sql: "INSERT INTO agents (id, name, created_at) VALUES (?, ?, ?)",
-      args: [agentId, name.trim(), now]
+      sql: "INSERT INTO agents (id, user_id, name, created_at) VALUES (?, ?, ?, ?)",
+      args: [agentId, user.id, name.trim(), now]
     });
 
     await db.execute({

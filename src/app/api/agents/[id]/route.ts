@@ -1,40 +1,38 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db, initDb } from "@/lib/db";
 import { generateUUID } from "@/lib/utils";
+import { verifyAuth } from "@/lib/auth";
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     await initDb();
     const { id } = params;
-    const { name, prompt, adminToken } = await request.json();
+    const user = verifyAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
+    }
+
+    const { name, prompt } = await request.json();
 
     if (!name || !name.trim() || !prompt || !prompt.trim()) {
-      return NextResponse.json({ error: "Имя агента и промпт обязательны к заполнению" }, { status: 400 });
+      return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
 
-    // Проверка авторизации
-    const systemAdminToken = process.env.ADMIN_TOKEN;
-    if (systemAdminToken && systemAdminToken.trim() !== "" && systemAdminToken !== adminToken) {
-      return NextResponse.json({ error: "Неверный секретный токен администратора" }, { status: 401 });
-    }
-
-    // Проверяем существование агента
+    // Проверка прав на владение агентом
     const agentCheck = await db.execute({
-      sql: "SELECT * FROM agents WHERE id = ?",
-      args: [id]
+      sql: "SELECT * FROM agents WHERE id = ? AND user_id = ?",
+      args: [id, user.id]
     });
 
     if (agentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Агент не найден" }, { status: 404 });
+      return NextResponse.json({ error: "Агент не найден или доступ ограничен" }, { status: 404 });
     }
 
-    // Обновляем имя агента, если оно изменилось
     await db.execute({
       sql: "UPDATE agents SET name = ? WHERE id = ?",
       args: [name.trim(), id]
     });
 
-    // Находим последнюю версию, чтобы узнать новый номер версии
     const lastVersionResult = await db.execute({
       sql: "SELECT MAX(version) as max_ver FROM prompt_versions WHERE agent_id = ?",
       args: [id]
@@ -42,7 +40,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const currentMaxVersion = Number(lastVersionResult.rows[0].max_ver) || 0;
 
-    // Сравниваем текст промпта с последней сохраненной версией
     const lastPromptResult = await db.execute({
       sql: "SELECT prompt FROM prompt_versions WHERE agent_id = ? AND version = ?",
       args: [id, currentMaxVersion]
@@ -52,7 +49,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     let nextVersion = currentMaxVersion;
     const now = Date.now();
 
-    // Записываем новую версию только в случае, если текст промпта реально изменился
     if (lastPromptText !== prompt.trim()) {
       nextVersion = currentMaxVersion + 1;
       const versionId = generateUUID();
@@ -76,22 +72,24 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     await initDb();
     const { id } = params;
-    
-    // Считываем токен из заголовка или URL-параметра
-    const { searchParams } = new URL(request.url);
-    const adminToken = searchParams.get("adminToken");
-
-    // Проверка авторизации
-    const systemAdminToken = process.env.ADMIN_TOKEN;
-    if (systemAdminToken && systemAdminToken.trim() !== "" && systemAdminToken !== adminToken) {
-      return NextResponse.json({ error: "Неверный секретный токен администратора" }, { status: 401 });
+    const user = verifyAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
     }
 
-    // Удаляем агента (связанные версии удалятся каскадно благодаря ON DELETE CASCADE в SQLite/libSQL)
+    const agentCheck = await db.execute({
+      sql: "SELECT * FROM agents WHERE id = ? AND user_id = ?",
+      args: [id, user.id]
+    });
+
+    if (agentCheck.rows.length === 0) {
+      return NextResponse.json({ error: "Агент не найден или доступ ограничен" }, { status: 404 });
+    }
+
     await db.execute({
       sql: "DELETE FROM agents WHERE id = ?",
       args: [id]
