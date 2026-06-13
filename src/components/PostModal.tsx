@@ -68,20 +68,36 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
 
   if (!isOpen) return null;
 
-  async function translateText(text: string, toLang: "en" | "ru"): Promise<string> {
+  async function translateTextWithContext(nameText: string, promptText: string, toLang: "en" | "ru"): Promise<string> {
     try {
       const fromLang = toLang === "en" ? "ru" : "en";
-      const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`);
+      
+      // Очищаем текст промпта от переносов для компактности
+      const cleanPrompt = promptText.replace(/[\r\n]+/g, " ").trim();
+      
+      // Рассчитываем допустимый размер контекста, оставляя запас под имя (общий лимит API 480 символов)
+      const maxPromptLen = 480 - nameText.length - 10;
+      const promptSlice = cleanPrompt.substring(0, Math.max(50, maxPromptLen));
+      
+      // Формируем комбинированный запрос с разделителем "|||"
+      const textToTranslate = `${promptSlice} ||| ${nameText}`;
+      
+      const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=${fromLang}|${toLang}`);
       if (res.ok) {
         const data = await res.json();
         if (data && data.responseData && data.responseData.translatedText) {
-          return data.responseData.translatedText;
+          const translatedText = data.responseData.translatedText;
+          const parts = translatedText.split("|||");
+          if (parts.length > 1) {
+            return parts[parts.length - 1].trim();
+          }
+          return translatedText.trim();
         }
       }
     } catch (err) {
-      console.error("Translation API error:", err);
+      console.error("Context translation API error:", err);
     }
-    return text;
+    return nameText;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,7 +122,8 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
         const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalName);
         const toLang = hasCyrillic ? "en" : "ru";
         
-        const translatedName = await translateText(finalName, toLang);
+        // Передаем промпт в качестве контекста перевода
+        const translatedName = await translateTextWithContext(finalName, finalPrompt, toLang);
         finalName = `${finalName} | ${translatedName}`;
       }
 
