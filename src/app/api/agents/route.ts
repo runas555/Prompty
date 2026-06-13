@@ -6,32 +6,28 @@ import { verifyAuth } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     await initDb();
-    const user = verifyAuth(request);
-    if (!user) {
-      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
-    }
-
-    const queryResult = await db.execute({
-      sql: `
-        SELECT 
-          a.id, 
-          a.name, 
-          a.created_at,
-          pv.prompt, 
-          pv.version, 
-          pv.created_at as updated_at
-        FROM agents a
-        LEFT JOIN prompt_versions pv ON pv.agent_id = a.id
-        WHERE a.user_id = ? AND pv.version = (
-          SELECT MAX(version) FROM prompt_versions WHERE agent_id = a.id
-        )
-        ORDER BY a.created_at DESC
-      `,
-      args: [user.id]
-    });
+    
+    // Получаем всех агентов для свободного просмотра всеми гостями
+    const queryResult = await db.execute(`
+      SELECT 
+        a.id, 
+        a.user_id,
+        a.name, 
+        a.created_at,
+        pv.prompt, 
+        pv.version, 
+        pv.created_at as updated_at
+      FROM agents a
+      LEFT JOIN prompt_versions pv ON pv.agent_id = a.id
+      WHERE pv.version = (
+        SELECT MAX(version) FROM prompt_versions WHERE agent_id = a.id
+      )
+      ORDER BY a.created_at DESC
+    `);
 
     const agents = queryResult.rows.map(row => ({
       id: row.id as string,
+      userId: row.user_id as string, // Передаем ID владельца для разграничения прав в UI
       name: row.name as string,
       createdAt: Number(row.created_at),
       prompt: row.prompt as string,
@@ -51,13 +47,13 @@ export async function POST(request: NextRequest) {
     await initDb();
     const user = verifyAuth(request);
     if (!user) {
-      return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
+      return NextResponse.json({ error: "Для создания агентов необходима авторизация" }, { status: 401 });
     }
 
     const { name, prompt } = await request.json();
 
     if (!name || !name.trim() || !prompt || !prompt.trim()) {
-      return NextResponse.json({ error: "Имя агента и промпт обязательны" }, { status: 400 });
+      return NextResponse.json({ error: "Заполните все поля формы" }, { status: 400 });
     }
 
     const agentId = generateUUID();
@@ -76,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       id: agentId,
+      userId: user.id,
       name: name.trim(),
       createdAt: now,
       prompt: prompt.trim(),

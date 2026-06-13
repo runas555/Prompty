@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Copy, Check, History, Edit, Trash2, Calendar, FileText } from "lucide-react";
+import { Copy, Check, History, Edit, Trash2, Calendar } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 export interface Agent {
   id: string;
+  userId: string;
   name: string;
   createdAt: number;
   prompt: string;
@@ -13,6 +14,7 @@ export interface Agent {
 
 interface AgentCardProps {
   agent: Agent;
+  currentUserId?: string | null;
   onEdit: (agent: Agent) => void;
   onOpenHistory: (agentId: string) => void;
   onDelete: (agentId: string) => void;
@@ -21,16 +23,17 @@ interface AgentCardProps {
 
 export default function AgentCard({
   agent,
+  currentUserId,
   onEdit,
   onOpenHistory,
   onDelete,
   highlightText = ""
 }: AgentCardProps) {
   const [copied, setCopied] = useState(false);
+  const isOwner = currentUserId === agent.userId;
 
   const handleCopy = async () => {
     try {
-      // Использование встроенного буфера обмена с фоллбэком на textarea
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(agent.prompt);
       } else {
@@ -50,7 +53,6 @@ export default function AgentCard({
     }
   };
 
-  // Метод подсветки совпадений при поиске
   const highlight = (text: string, query: string) => {
     if (!query) return text;
     const parts = text.split(new RegExp(`(${query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")})`, "gi"));
@@ -71,11 +73,9 @@ export default function AgentCard({
 
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 hover:border-slate-700 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between h-[340px] relative group overflow-hidden">
-      {/* Легкое свечение на фоне при ховере */}
       <div className="absolute -inset-px bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full">
-        {/* Шапка карточки */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-slate-100 text-base truncate">
@@ -93,16 +93,13 @@ export default function AgentCard({
           </div>
         </div>
 
-        {/* Тело карточки (промпт) */}
         <div className="flex-1 bg-slate-950/80 rounded-lg p-3 text-sm text-slate-300 border border-slate-800/80 overflow-y-auto mb-4 relative select-text">
           <p className="whitespace-pre-wrap leading-relaxed break-words font-mono text-[12px] opacity-90 select-text">
             {highlight(agent.prompt, highlightText)}
           </p>
         </div>
 
-        {/* Действия с карточкой */}
         <div className="flex items-center justify-between gap-2 border-t border-slate-800/80 pt-3">
-          {/* Вспомогательные действия слева */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => onOpenHistory(agent.id)}
@@ -111,23 +108,28 @@ export default function AgentCard({
             >
               <History className="h-4.5 w-4.5" />
             </button>
-            <button
-              onClick={() => onEdit(agent)}
-              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
-              title="Редактировать агента"
-            >
-              <Edit className="h-4.5 w-4.5" />
-            </button>
-            <button
-              onClick={() => onDelete(agent.id)}
-              className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
-              title="Удалить"
-            >
-              <Trash2 className="h-4.5 w-4.5" />
-            </button>
+
+            {/* Рендерим кнопки редактирования только владельцам */}
+            {isOwner && (
+              <>
+                <button
+                  onClick={() => onEdit(agent)}
+                  className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                  title="Редактировать агента"
+                >
+                  <Edit className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  onClick={() => onDelete(agent.id)}
+                  className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                  title="Удалить"
+                >
+                  <Trash2 className="h-4.5 w-4.5" />
+                </button>
+              </>
+            )}
           </div>
 
-          {/* Кнопка быстрого копирования справа */}
           <button
             onClick={handleCopy}
             className={`flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-lg transition-all duration-200 shadow-sm active:scale-95 ${
