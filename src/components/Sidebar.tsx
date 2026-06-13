@@ -40,7 +40,7 @@ export default function Sidebar({
   onLogoutClick
 }: SidebarProps) {
   const { t } = useLanguage();
-  const catLabelMap = {
+  const catLabelMap: Record<string, string> = {
     all: "catAll",
     coding: "catCoding",
     writing: "catWriting",

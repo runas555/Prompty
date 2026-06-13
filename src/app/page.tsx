@@ -13,7 +13,7 @@ import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCir
 
 export default function Home() {
   const { t } = useLanguage();
-  const catLabelMap = {
+  const catLabelMap: Record<string, string> = {
     all: "catAll",
     coding: "catCoding",
     writing: "catWriting",
