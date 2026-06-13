@@ -12,9 +12,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Запрещено без авторизации" }, { status: 401 });
     }
 
-    const { name, prompt, category } = await request.json();
+    const { name, prompt, category, model, tags } = await request.json();
 
-    if (!name || !name.trim() || !prompt || !prompt.trim() || !category) {
+    if (!name || !name.trim() || !prompt || !prompt.trim() || !category || !model) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
 
@@ -27,9 +27,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Пост не найден или доступ ограничен" }, { status: 404 });
     }
 
+    // Нормализация тегов
+    const cleanTags = tags 
+      ? tags.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "").join(",") 
+      : "";
+
     await db.execute({
-      sql: "UPDATE agents SET name = ?, category = ? WHERE id = ?",
-      args: [name.trim(), category, id]
+      sql: "UPDATE agents SET name = ?, category = ?, model = ?, tags = ? WHERE id = ?",
+      args: [name.trim(), category, model, cleanTags, id]
     });
 
     const lastVersionResult = await db.execute({

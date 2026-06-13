@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2, Calendar } from "lucide-react";
+import { Heart, MessageSquare, Copy, Check, History, Edit, Trash2, Calendar, Cpu } from "lucide-react";
 import { formatDateTime, getUserGradient } from "@/lib/utils";
 
 export interface Agent {
@@ -7,6 +7,8 @@ export interface Agent {
   userId: string;
   name: string;
   category: string;
+  model: string;
+  tags: string;
   createdAt: number;
   username: string;
   userBio: string;
@@ -27,6 +29,15 @@ interface AgentCardProps {
   onLikeToggle: (agentId: string, currentLikeStatus: boolean) => void;
   highlightText?: string;
 }
+
+const MODEL_LABELS: Record<string, string> = {
+  any: "Универсальный",
+  gpt4: "GPT-4 / 4o",
+  claude: "Claude 3.5",
+  gemini: "Gemini Pro",
+  llama: "LLaMA / DeepSeek",
+  midjourney: "Midjourney"
+};
 
 export default function AgentCard({
   agent,
@@ -81,7 +92,7 @@ export default function AgentCard({
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-[360px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300">
+    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between h-[390px] relative group overflow-hidden hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-300 glass">
       <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
@@ -93,36 +104,45 @@ export default function AgentCard({
                 {agent.username.slice(0, 2)}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-300 truncate">{agent.username}</p>
-                <p className="text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промпт-инженер"}</p>
+                <p className="text-xs font-bold text-slate-300 truncate">@{agent.username}</p>
+                <p className="text-[10px] text-slate-500 truncate max-w-[130px]">{agent.userBio || "Промптер"}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded-full uppercase">
+              <span className="inline-flex items-center text-[9px] font-extrabold text-indigo-400 bg-indigo-950/40 border border-indigo-900 px-2 py-0.5 rounded-full uppercase">
                 v{agent.version}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium">
-                {formatDateTime(agent.createdAt)}
+              <span className="inline-flex items-center text-[9px] font-extrabold text-cyan-400 bg-cyan-950/40 border border-cyan-900 px-2 py-0.5 rounded-full uppercase">
+                {MODEL_LABELS[agent.model] || "Модель"}
               </span>
             </div>
           </div>
 
-          <h3 className="font-bold text-slate-100 text-base truncate mb-2">
+          <h3 className="font-bold text-slate-100 text-base truncate mb-1.5">
             {highlight(agent.name, highlightText)}
           </h3>
+
+          {/* Отображение хэштегов */}
+          {agent.tags && agent.tags.trim() && (
+            <div className="flex flex-wrap gap-1 mb-2.5 max-h-6 overflow-hidden">
+              {agent.tags.split(",").map((tag, idx) => (
+                <span key={idx} className="text-[10px] text-slate-400 font-medium bg-slate-800/40 px-2 py-0.5 rounded">
+                  #{tag.trim()}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Текст промпта */}
-        <div className="flex-1 bg-slate-950 p-4 rounded-xl text-sm text-slate-300 border border-slate-800/60 overflow-y-auto mb-4 font-mono text-[12px] opacity-90 select-text leading-relaxed">
+        <div className="flex-1 bg-slate-950 p-4 rounded-xl text-sm text-slate-300 border border-slate-850 overflow-y-auto mb-4 font-mono text-[12px] opacity-90 select-text leading-relaxed">
           <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
         </div>
 
         {/* Метрики соцсети и кнопки */}
         <div className="flex items-center justify-between gap-3 border-t border-slate-800/60 pt-3">
-          {/* Социальная панель слева */}
-          <div className="flex items-center gap-3">
-            {/* Кнопка лайка */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onLikeToggle(agent.id, agent.hasLiked)}
               className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors ${
@@ -135,7 +155,6 @@ export default function AgentCard({
               <span>{agent.likeCount}</span>
             </button>
 
-            {/* Просмотр комментариев / историй */}
             <button
               onClick={() => onOpenHistory(agent)}
               className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-2 py-1.5 rounded-lg hover:bg-slate-800/40"
@@ -145,7 +164,6 @@ export default function AgentCard({
             </button>
           </div>
 
-          {/* Инструменты управления владельца и копирование справа */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onOpenHistory(agent)}

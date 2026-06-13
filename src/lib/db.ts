@@ -21,13 +21,15 @@ export async function initDb() {
       );
     `);
 
-    // 2. Посты (Агенты)
+    // 2. Посты (Агенты) с поддержкой model и tags
     await db.execute(`
       CREATE TABLE IF NOT EXISTS agents (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
+        model TEXT DEFAULT 'any',
+        tags TEXT DEFAULT '',
         created_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
@@ -71,10 +73,25 @@ export async function initDb() {
       );
     `);
 
-    // Индексы для оптимизации селектов в ленте
+    // БЕЗОПАСНАЯ МИГРАЦИЯ ДЛЯ СУЩЕСТВУЮЩИХ БД
+    try {
+      await db.execute("ALTER TABLE agents ADD COLUMN user_id TEXT DEFAULT 'system_default'");
+    } catch (e) {}
+
+    try {
+      await db.execute("ALTER TABLE agents ADD COLUMN model TEXT DEFAULT 'any'");
+    } catch (e) {}
+
+    try {
+      await db.execute("ALTER TABLE agents ADD COLUMN tags TEXT DEFAULT ''");
+    } catch (e) {}
+
+    // Индексы для оптимизации
     await db.execute("CREATE INDEX IF NOT EXISTS idx_comments_agent ON comments(agent_id)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_likes_agent ON likes(agent_id)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_user ON agents(user_id)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_category ON agents(category)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_agents_model ON agents(model)");
 
   } catch (error) {
     console.error("Database initialization failed:", error);

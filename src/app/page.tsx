@@ -8,11 +8,22 @@ import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
 import BioModal from "@/components/BioModal";
-import { AlertCircle, Terminal, Search } from "lucide-react";
+import { AlertCircle, Terminal, Search, Cpu } from "lucide-react";
+
+const MODELS = [
+  { id: "all", label: "Все ИИ модели" },
+  { id: "any", label: "Универсальные" },
+  { id: "gpt4", label: "GPT-4 / 4o" },
+  { id: "claude", label: "Claude 3.5" },
+  { id: "gemini", label: "Gemini" },
+  { id: "llama", label: "LLaMA / DeepSeek" },
+  { id: "midjourney", label: "Midjourney" }
+];
 
 export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeModel, setActiveModel] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchFeed();
-  }, [activeCategory]);
+  }, [activeCategory, activeModel]);
 
   const checkSession = async () => {
     try {
@@ -49,6 +60,8 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      fetchFeed();
     }
   };
 
@@ -56,7 +69,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/agents?category=${activeCategory}`);
+      const res = await fetch(`/api/agents?category=${activeCategory}&model=${activeModel}`);
       if (res.ok) {
         const data = await res.json();
         setAgents(data);
@@ -82,7 +95,7 @@ export default function Home() {
     }
   };
 
-  const handleSaveAgent = async (name: string, prompt: string, category: string): Promise<boolean> => {
+  const handleSaveAgent = async (name: string, prompt: string, category: string, model: string, tags: string): Promise<boolean> => {
     try {
       const isEdit = !!editingAgent;
       const url = isEdit ? `/api/agents/${editingAgent.id}` : "/api/agents";
@@ -91,7 +104,7 @@ export default function Home() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, prompt, category })
+        body: JSON.stringify({ name, prompt, category, model, tags })
       });
 
       if (res.ok) {
@@ -114,13 +127,14 @@ export default function Home() {
         body: JSON.stringify({
           name: activeAgent.name,
           prompt: promptText,
-          category: activeAgent.category
+          category: activeAgent.category,
+          model: activeAgent.model,
+          tags: activeAgent.tags
         })
       });
 
       if (res.ok) {
         await fetchFeed();
-        // Обновляем локально активного агента
         setActiveAgent({
           ...activeAgent,
           prompt: promptText,
@@ -156,7 +170,6 @@ export default function Home() {
       return;
     }
 
-    // Оптимистичное обновление UI
     setAgents(prevAgents =>
       prevAgents.map(a => {
         if (a.id === agentId) {
@@ -204,7 +217,8 @@ export default function Home() {
     return (
       agent.name.toLowerCase().includes(q) ||
       agent.prompt.toLowerCase().includes(q) ||
-      agent.username.toLowerCase().includes(q)
+      agent.username.toLowerCase().includes(q) ||
+      agent.tags.toLowerCase().includes(q)
     );
   });
 
@@ -222,8 +236,6 @@ export default function Home() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col md:flex-row gap-8 flex-1">
-        
-        {/* Боковая панель меню */}
         <Sidebar
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
@@ -231,19 +243,37 @@ export default function Home() {
           totalPromptsCount={agents.length}
         />
 
-        {/* Главная лента */}
         <div className="flex-1 flex flex-col gap-6">
-          
-          {/* Панель поиска по сообществу */}
+          {/* Панель поиска */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
             <input
               type="text"
-              placeholder="Поиск промптов по роли ИИ, тексту или автору..."
+              placeholder="Поиск по задачам, тегам (#seo, #react) или авторам..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all duration-200"
             />
+          </div>
+
+          {/* Панель фильтрации по AI Моделям */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-1 select-none">
+            {MODELS.map(m => {
+              const isActive = activeModel === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveModel(m.id)}
+                  className={`text-xs px-3.5 py-1.5 rounded-full border transition-all shrink-0 font-semibold ${
+                    isActive 
+                      ? "bg-cyan-950 border-cyan-800 text-cyan-300 shadow-sm" 
+                      : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
 
           {error && (
@@ -255,8 +285,8 @@ export default function Home() {
 
           {loading ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[1, 2, 4].map(i => (
-                <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[360px] animate-pulse" />
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 h-[390px] animate-pulse" />
               ))}
             </div>
           ) : filteredAgents.length === 0 ? (
@@ -265,10 +295,10 @@ export default function Home() {
                 <Terminal className="h-7 w-7 stroke-[1.5]" />
               </div>
               <h3 className="text-lg font-bold text-slate-200">
-                {searchQuery ? "Совпадений не найдено" : "Категория пуста"}
+                {searchQuery ? "Совпадений не найдено" : "Секция пуста"}
               </h3>
               <p className="text-sm text-slate-500 mt-2">
-                {searchQuery ? "Попробуйте изменить поисковые слова." : "Будьте первым промптером в данной теме!"}
+                {searchQuery ? "Скорректируйте поисковые слова." : "Опубликуйте первый промпт в этой секции!"}
               </p>
             </div>
           ) : (
@@ -294,10 +324,9 @@ export default function Home() {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* Модальные окна */}
+      {/* Модалки */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}

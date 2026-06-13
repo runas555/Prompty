@@ -8,9 +8,10 @@ export async function GET(request: NextRequest) {
     await initDb();
     const user = verifyAuth(request);
     
-    // Считываем параметр фильтрации по категории
+    // Считываем параметры фильтрации
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || "all";
+    const model = searchParams.get("model") || "all";
 
     let sqlQuery = `
       SELECT 
@@ -18,6 +19,8 @@ export async function GET(request: NextRequest) {
         a.user_id,
         a.name, 
         a.category,
+        a.model,
+        a.tags,
         a.created_at,
         u.username,
         u.bio,
@@ -42,6 +45,11 @@ export async function GET(request: NextRequest) {
       args.push(category);
     }
 
+    if (model !== "all") {
+      sqlQuery += " AND a.model = ?";
+      args.push(model);
+    }
+
     sqlQuery += " ORDER BY a.created_at DESC";
 
     const queryResult = await db.execute({ sql: sqlQuery, args });
@@ -51,6 +59,8 @@ export async function GET(request: NextRequest) {
       userId: row.user_id as string,
       name: row.name as string,
       category: row.category as string,
+      model: (row.model as string) || "any",
+      tags: (row.tags as string) || "",
       createdAt: Number(row.created_at),
       username: (row.username as string) || "Deleted User",
       userBio: (row.bio as string) || "",
@@ -77,19 +87,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Пожалуйста, войдите в систему" }, { status: 401 });
     }
 
-    const { name, prompt, category } = await request.json();
+    const { name, prompt, category, model, tags } = await request.json();
 
-    if (!name || !name.trim() || !prompt || !prompt.trim() || !category) {
+    if (!name || !name.trim() || !prompt || !prompt.trim() || !category || !model) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
+
+    // Нормализация тегов
+    const cleanTags = tags 
+      ? tags.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "").join(",") 
+      : "";
 
     const agentId = generateUUID();
     const versionId = generateUUID();
     const now = Date.now();
 
     await db.execute({
-      sql: "INSERT INTO agents (id, user_id, name, category, created_at) VALUES (?, ?, ?, ?, ?)",
-      args: [agentId, user.id, name.trim(), category, now]
+      sql: "INSERT INTO agents (id, user_id, name, category, model, tags, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [agentId, user.id, name.trim(), category, model, cleanTags, now]
     });
 
     await db.execute({
