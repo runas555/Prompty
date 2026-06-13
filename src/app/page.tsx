@@ -7,7 +7,7 @@ import AgentCard, { Agent } from "@/components/AgentCard";
 import DetailModal from "@/components/DetailModal";
 import AuthModal from "@/components/AuthModal";
 import PostModal from "@/components/PostModal";
-import BioModal from "@/components/BioModal";
+import ProfileModal from "@/components/ProfileModal";
 import { AlertCircle, Terminal, Search, Compass, User, Settings, LogOut, PlusCircle } from "lucide-react";
 
 const MODELS = [
@@ -29,16 +29,19 @@ export default function Home() {
   const [error, setError] = useState("");
 
   // Сессионные данные
-  const [user, setUser] = useState<{ id: string; username: string; bio: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; username: string; bio: string; avatar: string } | null>(null);
 
   // Навигация для мобильных платформ
   const [mobileTab, setMobileTab] = useState<"feed" | "categories" | "search" | "profile">("feed");
+
+  // Табы ленты (для desktop и mobile)
+  const [feedMode, setFeedMode] = useState<"all" | "my" | "liked">("all");
 
   // Модальные окна
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPostOpen, setIsPostOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isBioOpen, setIsBioOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Активные объекты
   const [activeAgent, setActiveAgent] = useState<Agent | null>(null);
@@ -50,7 +53,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchFeed();
-  }, [activeCategory, activeModel]);
+  }, [activeCategory, activeModel, feedMode, user]);
 
   const checkSession = async () => {
     try {
@@ -72,7 +75,15 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/agents?category=${activeCategory}&model=${activeModel}`);
+      // Строим query-параметры на основе выбранной вкладки (All / My / Liked)
+      let queryUrl = `/api/agents?category=${activeCategory}&model=${activeModel}`;
+      if (feedMode === "my" && user) {
+        queryUrl += `&authorId=${user.id}`;
+      } else if (feedMode === "liked" && user) {
+        queryUrl += `&likedBy=${user.id}`;
+      }
+
+      const res = await fetch(queryUrl);
       if (res.ok) {
         const data = await res.json();
         setAgents(data);
@@ -92,6 +103,7 @@ export default function Home() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
+      setFeedMode("all");
       fetchFeed();
       setMobileTab("feed");
     } catch (err) {
@@ -196,16 +208,16 @@ export default function Home() {
     }
   };
 
-  const handleSaveBio = async (bioText: string): Promise<boolean> => {
+  const handleSaveProfile = async (bioText: string, avatarBase64: string): Promise<boolean> => {
     try {
-      const res = await fetch("/api/auth/bio", {
+      const res = await fetch("/api/auth/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio: bioText })
+        body: JSON.stringify({ bio: bioText, avatar: avatarBase64 })
       });
 
       if (res.ok && user) {
-        setUser({ ...user, bio: bioText.trim() });
+        setUser({ ...user, bio: bioText.trim(), avatar: avatarBase64 });
         fetchFeed();
         return true;
       }
@@ -255,7 +267,7 @@ export default function Home() {
 
         <div className="flex-1 flex flex-col gap-5 md:gap-6">
           
-          {/* ================= DESKTOP VIEW LAYOUT ================= */}
+          {/* ================= DESKTOP VIEW PANEL ================= */}
           <div className="hidden md:flex flex-col gap-6">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -267,6 +279,36 @@ export default function Home() {
                 className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
+
+            {/* Вкладки Модов ленты на Desktop */}
+            {user && (
+              <div className="flex border-b border-slate-800">
+                <button
+                  onClick={() => setFeedMode("all")}
+                  className={`px-5 py-2.5 text-sm font-bold border-b-2 transition-all ${
+                    feedMode === "all" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  Все публикации
+                </button>
+                <button
+                  onClick={() => setFeedMode("my")}
+                  className={`px-5 py-2.5 text-sm font-bold border-b-2 transition-all ${
+                    feedMode === "my" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  Мои промпты
+                </button>
+                <button
+                  onClick={() => setFeedMode("liked")}
+                  className={`px-5 py-2.5 text-sm font-bold border-b-2 transition-all ${
+                    feedMode === "liked" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  Мне понравилось
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mt-1 select-none hide-scrollbar">
               {MODELS.map(m => {
@@ -299,6 +341,36 @@ export default function Home() {
               </div>
             )}
 
+            {/* Вкладки Модов ленты на Смартфонах */}
+            {user && (
+              <div className="flex md:hidden border-b border-slate-850 mb-4 overflow-x-auto hide-scrollbar select-none">
+                <button
+                  onClick={() => setFeedMode("all")}
+                  className={`px-4 py-2 text-xs font-bold border-b-2 shrink-0 transition-all ${
+                    feedMode === "all" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
+                  }`}
+                >
+                  Все посты
+                </button>
+                <button
+                  onClick={() => setFeedMode("my")}
+                  className={`px-4 py-2 text-xs font-bold border-b-2 shrink-0 transition-all ${
+                    feedMode === "my" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
+                  }`}
+                >
+                  Мои промпты
+                </button>
+                <button
+                  onClick={() => setFeedMode("liked")}
+                  className={`px-4 py-2 text-xs font-bold border-b-2 shrink-0 transition-all ${
+                    feedMode === "liked" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-500"
+                  }`}
+                >
+                  Избранное
+                </button>
+              </div>
+            )}
+
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {[1, 2, 3].map(i => (
@@ -306,15 +378,14 @@ export default function Home() {
                 ))}
               </div>
             ) : filteredAgents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto animate-fadeIn">
+              <div className="flex flex-col items-center justify-center text-center py-20 bg-slate-900/20 border border-dashed border-slate-800/60 rounded-3xl p-8 max-w-lg mx-auto">
                 <div className="h-16 w-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
                   <Terminal className="h-7 w-7 stroke-[1.5]" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-200">Раздел пуст</h3>
-                <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой секции!</p>
+                <h3 className="text-lg font-bold text-slate-200">Ничего не найдено</h3>
+                <p className="text-sm text-slate-500 mt-1">Опубликуйте первый промпт в этой вкладке!</p>
               </div>
             ) : (
-              // Сетка заменена на трехколоночную на больших экранах
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {filteredAgents.map(agent => (
                   <AgentCard
@@ -411,9 +482,17 @@ export default function Home() {
             {user ? (
               <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 glass">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-xs text-slate-950 font-bold uppercase">
-                    {user.username.slice(0, 2)}
-                  </div>
+                  {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="Profile" 
+                      className="h-11 w-11 rounded-xl object-cover border border-slate-850"
+                    />
+                  ) : (
+                    <div className="h-11 w-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-xs text-slate-400 font-bold uppercase">
+                      {user.username.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <p className="text-base font-bold text-slate-200">@{user.username}</p>
                     <p className="text-xs text-slate-500">Промпт-инженер</p>
@@ -426,11 +505,11 @@ export default function Home() {
 
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <button
-                    onClick={() => setIsBioOpen(true)}
+                    onClick={() => setIsProfileOpen(true)}
                     className="flex items-center justify-center gap-2 bg-slate-800 text-slate-300 py-3 rounded-xl text-xs font-bold border border-slate-700"
                   >
                     <Settings className="h-4 w-4" />
-                    О себе
+                    Настройки
                   </button>
                   <button
                     onClick={handleLogout}
@@ -516,7 +595,7 @@ export default function Home() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onSuccess={(userData) => {
-          setUser({ ...userData, bio: "" });
+          setUser(userData);
           checkSession();
           setMobileTab("feed");
         }}
@@ -547,11 +626,12 @@ export default function Home() {
         }}
       />
 
-      <BioModal
-        isOpen={isBioOpen}
-        onClose={() => setIsBioOpen(false)}
-        onSave={handleSaveBio}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onSave={handleSaveProfile}
         currentBio={user ? user.bio : ""}
+        currentAvatar={user ? user.avatar : ""}
       />
     </div>
   );

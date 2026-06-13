@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || "all";
     const model = searchParams.get("model") || "all";
+    const authorId = searchParams.get("authorId") || "";
+    const likedBy = searchParams.get("likedBy") || "";
 
     let sqlQuery = `
       SELECT 
@@ -24,6 +26,7 @@ export async function GET(request: NextRequest) {
         a.created_at,
         u.username,
         u.bio,
+        u.avatar,
         pv.prompt, 
         pv.version, 
         pv.created_at as updated_at,
@@ -50,6 +53,16 @@ export async function GET(request: NextRequest) {
       args.push(model);
     }
 
+    if (authorId) {
+      sqlQuery += " AND a.user_id = ?";
+      args.push(authorId);
+    }
+
+    if (likedBy) {
+      sqlQuery += " AND a.id IN (SELECT agent_id FROM likes WHERE user_id = ?)";
+      args.push(likedBy);
+    }
+
     sqlQuery += " ORDER BY a.created_at DESC";
 
     const queryResult = await db.execute({ sql: sqlQuery, args });
@@ -64,6 +77,7 @@ export async function GET(request: NextRequest) {
       createdAt: Number(row.created_at),
       username: (row.username as string) || "Deleted User",
       userBio: (row.bio as string) || "",
+      avatar: (row.avatar as string) || "", // Возвращаем аватар автора
       prompt: row.prompt as string,
       version: Number(row.version),
       updatedAt: Number(row.updated_at),
@@ -93,7 +107,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Заполните все поля" }, { status: 400 });
     }
 
-    // Нормализация тегов
     const cleanTags = tags 
       ? tags.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "").join(",") 
       : "";

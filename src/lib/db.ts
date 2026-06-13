@@ -10,18 +10,19 @@ export const db = createClient({
 
 export async function initDb() {
   try {
-    // 1. Пользователи
+    // 1. Пользователи (с поддержкой аватара)
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         bio TEXT DEFAULT '',
+        avatar TEXT DEFAULT '',
         created_at INTEGER NOT NULL
       );
     `);
 
-    // 2. Посты (Агенты) с поддержкой model и tags
+    // 2. Посты (Агенты)
     await db.execute(`
       CREATE TABLE IF NOT EXISTS agents (
         id TEXT PRIMARY KEY,
@@ -73,7 +74,11 @@ export async function initDb() {
       );
     `);
 
-    // БЕЗОПАСНАЯ МИГРАЦИЯ ДЛЯ СУЩЕСТВУЮЩИХ БД
+    // БЕЗОПАСНЫЕ МИГРАЦИИ СХЕМЫ
+    try {
+      await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''");
+    } catch (e) {}
+
     try {
       await db.execute("ALTER TABLE agents ADD COLUMN user_id TEXT DEFAULT 'system_default'");
     } catch (e) {}

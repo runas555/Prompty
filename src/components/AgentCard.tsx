@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Heart, MessageSquare, Copy, Check, Edit, Trash2 } from "lucide-react";
-import { getUserGradient } from "@/lib/utils";
+import { formatDateTime, getUserGradient } from "@/lib/utils";
 
 export interface Agent {
   id: string;
@@ -12,6 +12,7 @@ export interface Agent {
   createdAt: number;
   username: string;
   userBio: string;
+  avatar: string; // Новое поле аватара
   prompt: string;
   version: number;
   updatedAt: number;
@@ -52,7 +53,7 @@ export default function AgentCard({
   const isOwner = currentUser?.id === agent.userId;
 
   const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Исключаем клик по самой карточке
+    e.stopPropagation();
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(agent.prompt);
@@ -96,17 +97,24 @@ export default function AgentCard({
       onClick={() => onOpenHistory(agent)}
       className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 flex flex-col justify-between h-[210px] sm:h-[235px] relative group overflow-hidden hover:border-indigo-500/40 hover:bg-slate-900/70 transition-all duration-350 cursor-pointer glass select-none"
     >
-      {/* Мягкое боковое свечение на ховере */}
       <div className="absolute -inset-px bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
-        {/* Плотная верхняя строка метаданных */}
         <div>
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className={`h-6 w-6 rounded bg-gradient-to-tr ${getUserGradient(agent.username)} flex items-center justify-center text-[9px] text-slate-950 font-black uppercase shrink-0`}>
-                {agent.username.slice(0, 2)}
-              </div>
+              {/* Рендерим загруженное фото или градиентную заглушку */}
+              {agent.avatar ? (
+                <img 
+                  src={agent.avatar} 
+                  alt="avatar" 
+                  className="h-6 w-6 rounded object-cover shrink-0 border border-slate-800"
+                />
+              ) : (
+                <div className={`h-6 w-6 rounded bg-gradient-to-tr ${getUserGradient(agent.username)} flex items-center justify-center text-[9px] text-slate-950 font-black uppercase shrink-0`}>
+                  {agent.username.slice(0, 2)}
+                </div>
+              )}
               <span className="text-xs font-bold text-slate-300 truncate">@{agent.username}</span>
             </div>
 
@@ -124,7 +132,6 @@ export default function AgentCard({
             {highlight(agent.name, highlightText)}
           </h3>
 
-          {/* Компактные теги */}
           {agent.tags && agent.tags.trim() && (
             <div className="flex flex-wrap gap-1 mb-2 max-h-[16px] overflow-hidden">
               {agent.tags.split(",").map((tag, idx) => (
@@ -136,17 +143,13 @@ export default function AgentCard({
           )}
         </div>
 
-        {/* Плотное, низкое превью кода с градиентным затуханием (fade-out) */}
         <div className="relative flex-1 bg-slate-950/70 rounded-lg py-2 px-2.5 text-[11px] text-slate-400 border border-slate-850 overflow-hidden font-mono select-text leading-relaxed max-h-[50px] sm:max-h-[64px] mb-3">
           <p className="whitespace-pre-wrap select-text">{highlight(agent.prompt, highlightText)}</p>
-          {/* Градиентная маска для эффекта затухания вниз */}
           <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
         </div>
 
-        {/* Плотная нижняя панель действий с аккуратными тач-зонами */}
         <div className="flex items-center justify-between gap-2 border-t border-slate-800/50 pt-2" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1">
-            {/* Лайк */}
             <button
               onClick={() => onLikeToggle(agent.id, agent.hasLiked)}
               className={`flex items-center gap-1 text-[11px] font-bold h-7 px-2.5 rounded-lg transition-colors ${
@@ -159,7 +162,6 @@ export default function AgentCard({
               <span>{agent.likeCount}</span>
             </button>
 
-            {/* Комментарии */}
             <button
               onClick={() => onOpenHistory(agent)}
               className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200 h-7 px-2.5 rounded-lg hover:bg-slate-800/40"

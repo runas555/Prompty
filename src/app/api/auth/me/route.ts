@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userQuery = await db.execute({
-      sql: "SELECT id, username, bio FROM users WHERE id = ?",
+      sql: "SELECT id, username, bio, avatar FROM users WHERE id = ?",
       args: [verified.id]
     });
 
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
       user: {
         id: user.id as string,
         username: user.username as string,
-        bio: (user.bio as string) || ""
+        bio: (user.bio as string) || "",
+        avatar: (user.avatar as string) || ""
       }
     });
   } catch (error) {

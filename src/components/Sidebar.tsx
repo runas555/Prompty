@@ -8,7 +8,7 @@ import {
 interface SidebarProps {
   activeCategory: string;
   setActiveCategory: (category: string) => void;
-  user: { id: string; username: string; bio: string } | null;
+  user: { id: string; username: string; bio: string; avatar: string } | null;
   totalPromptsCount: number;
 }
 
@@ -40,8 +40,21 @@ export default function Sidebar({
         <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/5 to-transparent" />
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 relative z-10">Профиль</h3>
         {user ? (
-          <div className="relative z-10 flex flex-col gap-2.5">
-            <p className="text-sm font-bold text-slate-200">@{user.username}</p>
+          <div className="relative z-10 flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              {user.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt="Profile" 
+                  className="h-8 w-8 rounded-lg object-cover border border-slate-800"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                  {user.username.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <p className="text-sm font-bold text-slate-200">@{user.username}</p>
+            </div>
             <p className="text-xs text-slate-400 italic leading-relaxed break-words line-clamp-4">
               {user.bio || "Биография не указана. Заполните её в настройках."}
             </p>
@@ -79,7 +92,7 @@ export default function Sidebar({
 
       <div className="text-xs text-slate-500 px-4">
         <p>Активных промптов в ленте: {totalPromptsCount}</p>
-        <p className="mt-1">PromptSocial &bull; Open-Source v1.2</p>
+        <p className="mt-1">PromptSocial &bull; Open-Source v1.3</p>
       </div>
     </aside>
   );
