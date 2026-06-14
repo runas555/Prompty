@@ -256,7 +256,13 @@ export default function DetailModal({
                         </span>
                         <span className="flex items-center gap-1 text-xs text-slate-500 font-medium">
                           <Clock className="h-3.5 w-3.5" />
-                          {formatDateTime(ver.createdAt)}
+                          {(() => {
+                  const d = new Date(ver.createdAt);
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const year = d.getFullYear();
+                  return `${day}.${month}.${year}`;
+                })()}
                         </span>
                       </div>
 

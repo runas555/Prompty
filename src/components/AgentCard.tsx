@@ -134,6 +134,15 @@ export default function AgentCard({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              <span className="inline-flex items-center text-[8px] font-extrabold text-slate-400 bg-slate-950/30 border border-slate-800/50 px-1.5 py-0.5 rounded uppercase">
+                {(() => {
+                  const d = new Date(agent.createdAt);
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const year = d.getFullYear();
+                  return `${day}.${month}.${year}`;
+                })()}
+              </span>
               <span className="inline-flex items-center text-[8px] font-extrabold text-indigo-400 bg-indigo-950/30 border border-indigo-900/50 px-1.5 py-0.5 rounded uppercase">
                 v{agent.version}
               </span>
