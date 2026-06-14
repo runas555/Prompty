@@ -129,7 +129,25 @@ export const translations = {
     catCreative: "Творчество и ролевые",
     catProductivity: "Личная эффективность",
     catOther: "Разное",
-    modelNotSelected: "Не выбрано"
+    modelNotSelected: "Не выбрано",
+    studioParams: "Параметры",
+    studioSnapshots: "Слепки",
+    studioQuickSnapshot: "Быстрый слепок",
+    studioQuickSnapshotDesc: "Зафиксировать текущий код",
+    studioCommit: "Зафиксировать",
+    studioSnapshot: "Слепок",
+    studioCompare: "Сравнить",
+    studioApply: "Применить",
+    studioCurrent: "тек.",
+    studioEmptyHistory: "История слепков пуста",
+    studioCompareTitle: "Сравнение: Слепок",
+    studioCompareLeft: "слева",
+    studioCompareRight: "справа",
+    studioCloseCompare: "Закрыть сравнение",
+    studioRestoreSnapshot: "Восстановить этот слепок в редактор",
+    studioCompareStateCurrent: "ТЕКУЩЕЕ СОСТОЯНИЕ В РЕДАКТОРЕ",
+    studioSuccessCommit: "Слепок успешно зафиксирован в истории!",
+    studioLoadedSnapshot: "Загружен слепок v"
   },
   en: {
     title: "PromptSocial - Social Network for Prompt Engineers",
@@ -247,7 +265,25 @@ export const translations = {
     catCreative: "Creative & Roleplay",
     catProductivity: "Personal Productivity",
     catOther: "Other",
-    modelNotSelected: "Not selected"
+    modelNotSelected: "Not selected",
+    studioParams: "Parameters",
+    studioSnapshots: "Snapshots",
+    studioQuickSnapshot: "Quick Snapshot",
+    studioQuickSnapshotDesc: "Commit current code",
+    studioCommit: "Commit",
+    studioSnapshot: "Snapshot",
+    studioCompare: "Compare",
+    studioApply: "Apply",
+    studioCurrent: "curr.",
+    studioEmptyHistory: "Snapshot history is empty",
+    studioCompareTitle: "Comparison: Snapshot",
+    studioCompareLeft: "left",
+    studioCompareRight: "right",
+    studioCloseCompare: "Close comparison",
+    studioRestoreSnapshot: "Restore this snapshot to editor",
+    studioCompareStateCurrent: "CURRENT STATE IN EDITOR",
+    studioSuccessCommit: "Snapshot committed successfully!",
+    studioLoadedSnapshot: "Loaded snapshot v"
   }
 };
 
