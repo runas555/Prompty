@@ -10,14 +10,7 @@ if (!fs.existsSync(targetFile)) {
 
 let code = fs.readFileSync(targetFile, 'utf8');
 
-// Безопасная функция замены с поддержкой нормализации пробелов и переносов строк
 function replaceExact(oldStr, newStr, blockName) {
-  if (code.includes(oldStr)) {
-    code = code.replace(oldStr, newStr);
-    console.log(`[УСПЕШНО] Исправлен блок: ${blockName}`);
-    return true;
-  }
-  
   const normalize = (str) => str.replace(/\r\n/g, '\n');
   const normalizedCode = normalize(code);
   const normalizedOld = normalize(oldStr);
@@ -29,33 +22,65 @@ function replaceExact(oldStr, newStr, blockName) {
     const regex = new RegExp(escaped, 'g');
     
     code = code.replace(regex, newStr);
-    console.log(`[УСПЕШНО] Исправлен блок (с нормализацией): ${blockName}`);
+    console.log(`[УСПЕШНО] Исправлен блок: ${blockName}`);
     return true;
   }
 
-  console.log(`[ПРОПУЩЕНО/ОШИБКА] Блок "${blockName}" не найден в исходном коде.`);
+  console.log(`[ПРОПУЩЕНО/ОШИБКА] Блок "${blockName}" не найден.`);
   return false;
 }
 
-console.log('--- НАЧАЛО ИСПРАВЛЕНИЙ В POST-МОДАЛЕ ---');
+console.log('--- ОПТИМИЗАЦИЯ СОХРАНЕНИЯ СОСТОЯНИЯ ФОРМЫ И ПЕРЕВОДА ---');
 
-// 1. Исправление отображения знака доллара в названии вкладки
-const oldTab = 'Слепки (${versions.length})';
-const newTab = 'Слепки ({versions.length})';
-replaceExact(oldTab, newTab, 'Знак доллара в названии вкладки');
+const oldEffectBlock = `  useEffect(() => {
+    if (agent) {
+      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
+      setName(displayName);
+      setPrompt(agent.prompt);
+      setCategory(agent.category || "coding");
+      setModel(agent.model || "any");
+      setTags(agent.tags || "");
+      fetchVersions();
+    } else {
+      setName("");
+      setPrompt("");
+      setCategory("coding");
+      setModel("any");
+      setTags("");
+      setVersions([]);
+    }
+    setError("");
+    setAutoTranslate(false);
+    setSelectedCompareVersion(null);
+    setActiveRightTab("settings");
+  }, [agent, isOpen]);`;
 
-// 2. Добавление времени к дате создания в списке слепков
-const oldDateBlock = `<span className="text-[9px] text-slate-500">
-                              {new Date(ver.createdAt).toLocaleDateString()}
-                            </span>`;
+const newEffectBlock = `  useEffect(() => {
+    if (agent) {
+      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
+      setName(displayName);
+      setPrompt(agent.prompt);
+      setCategory(agent.category || "coding");
+      setModel(agent.model || "any");
+      setTags(agent.tags || "");
+      setAutoTranslate(agent.name.includes(" | "));
+      fetchVersions();
+    } else {
+      setName("");
+      setPrompt("");
+      setCategory("coding");
+      setModel("any");
+      setTags("");
+      setAutoTranslate(false);
+      setVersions([]);
+    }
+    setError("");
+    setSelectedCompareVersion(null);
+    setActiveRightTab("settings");
+  }, [agent?.id, isOpen]);`;
 
-const newDateBlock = `<span className="text-[9px] text-slate-500">
-                              {new Date(ver.createdAt).toLocaleDateString()} {new Date(ver.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>`;
+replaceExact(oldEffectBlock, newEffectBlock, 'Оптимизация сброса состояния формы и автоперевода');
 
-replaceExact(oldDateBlock, newDateBlock, 'Добавление времени создания слепка');
-
-// Сохранение исправлений
 try {
   fs.writeFileSync(targetFile, code, 'utf8');
   console.log('--- ИСПРАВЛЕНИЯ ЗАПИСАНЫ УСПЕШНО ---');

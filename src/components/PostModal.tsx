@@ -59,6 +59,7 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       setCategory(agent.category || "coding");
       setModel(agent.model || "any");
       setTags(agent.tags || "");
+      setAutoTranslate(agent.name.includes(" | "));
       fetchVersions();
     } else {
       setName("");
@@ -66,13 +67,13 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       setCategory("coding");
       setModel("any");
       setTags("");
+      setAutoTranslate(false);
       setVersions([]);
     }
     setError("");
-    setAutoTranslate(false);
     setSelectedCompareVersion(null);
     setActiveRightTab("settings");
-  }, [agent, isOpen]);
+  }, [agent?.id, isOpen]);
 
   const fetchVersions = async () => {
     if (!agent) return;
