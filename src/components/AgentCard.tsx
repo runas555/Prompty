@@ -34,7 +34,7 @@ interface AgentCardProps {
 }
 
 const MODEL_LABELS: Record<string, string> = {
-  any: "Any",
+  any: "Не выбрано",
   gpt4: "GPT-4",
   claude: "Claude",
   gemini: "Gemini",
@@ -146,9 +146,11 @@ export default function AgentCard({
               <span className="inline-flex items-center text-[8px] font-extrabold text-indigo-400 bg-indigo-950/30 border border-indigo-900/50 px-1.5 py-0.5 rounded uppercase">
                 v{agent.version}
               </span>
-              <span className="inline-flex items-center text-[8px] font-extrabold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-1.5 py-0.5 rounded uppercase">
-                {MODEL_LABELS[agent.model] || "Model"}
-              </span>
+              {agent.model && agent.model !== "any" && (
+                <span className="inline-flex items-center text-[8px] font-extrabold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-1.5 py-0.5 rounded uppercase">
+                  {MODEL_LABELS[agent.model] || "Model"}
+                </span>
+              )}
             </div>
           </div>
 

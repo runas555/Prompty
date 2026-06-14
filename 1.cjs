@@ -1,89 +1,68 @@
 const fs = require('fs');
 const path = require('path');
 
-const targetFile = path.join(__dirname, 'src/components/PostModal.tsx');
+const postModalPath = path.join(__dirname, 'src/components/PostModal.tsx');
+const agentCardPath = path.join(__dirname, 'src/components/AgentCard.tsx');
 
-if (!fs.existsSync(targetFile)) {
-  console.error(`[ОШИБКА] Целевой файл не найден: ${targetFile}`);
-  process.exit(1);
-}
+// Универсальная функция замены блоков с логами
+function replaceInFile(filePath, oldStr, newStr, blockName) {
+  if (!fs.existsSync(filePath)) {
+    console.log(`[ПРОПУЩЕНО] Файл не найден: ${filePath}`);
+    return false;
+  }
 
-let code = fs.readFileSync(targetFile, 'utf8');
-
-function replaceExact(oldStr, newStr, blockName) {
+  let content = fs.readFileSync(filePath, 'utf8');
   const normalize = (str) => str.replace(/\r\n/g, '\n');
-  const normalizedCode = normalize(code);
+  const normalizedContent = normalize(content);
   const normalizedOld = normalize(oldStr);
-  
-  if (normalizedCode.includes(normalizedOld)) {
+
+  if (normalizedContent.includes(normalizedOld)) {
     const escaped = oldStr
       .replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
       .replace(/\s+/g, '\\s+');
     const regex = new RegExp(escaped, 'g');
-    
-    code = code.replace(regex, newStr);
-    console.log(`[УСПЕШНО] Исправлен блок: ${blockName}`);
+
+    content = content.replace(regex, newStr);
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`[УСПЕШНО] Исправлен блок "${blockName}" в ${path.basename(filePath)}`);
     return true;
   }
 
-  console.log(`[ПРОПУЩЕНО/ОШИБКА] Блок "${blockName}" не найден.`);
+  console.log(`[ПРОПУЩЕНО/ОШИБКА] Блок "${blockName}" не найден в ${path.basename(filePath)}`);
   return false;
 }
 
-console.log('--- ОПТИМИЗАЦИЯ СОХРАНЕНИЯ СОСТОЯНИЯ ФОРМЫ И ПЕРЕВОДА ---');
+console.log('--- НАЧАЛО ОБНОВЛЕНИЯ МОДЕЛЕЙ И ОТОБРАЖЕНИЯ НА КАРТОЧКАХ ---');
 
-const oldEffectBlock = `  useEffect(() => {
-    if (agent) {
-      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
-      setName(displayName);
-      setPrompt(agent.prompt);
-      setCategory(agent.category || "coding");
-      setModel(agent.model || "any");
-      setTags(agent.tags || "");
-      fetchVersions();
-    } else {
-      setName("");
-      setPrompt("");
-      setCategory("coding");
-      setModel("any");
-      setTags("");
-      setVersions([]);
-    }
-    setError("");
-    setAutoTranslate(false);
-    setSelectedCompareVersion(null);
-    setActiveRightTab("settings");
-  }, [agent, isOpen]);`;
+// 1. Изменение "Any" на "Не выбрано" в PostModal.tsx
+const oldPostModalModel = `const MODELS = [
+  { id: "any", label: "Any" },`;
 
-const newEffectBlock = `  useEffect(() => {
-    if (agent) {
-      const displayName = agent.name.includes(" | ") ? agent.name.split(" | ")[0] : agent.name;
-      setName(displayName);
-      setPrompt(agent.prompt);
-      setCategory(agent.category || "coding");
-      setModel(agent.model || "any");
-      setTags(agent.tags || "");
-      setAutoTranslate(agent.name.includes(" | "));
-      fetchVersions();
-    } else {
-      setName("");
-      setPrompt("");
-      setCategory("coding");
-      setModel("any");
-      setTags("");
-      setAutoTranslate(false);
-      setVersions([]);
-    }
-    setError("");
-    setSelectedCompareVersion(null);
-    setActiveRightTab("settings");
-  }, [agent?.id, isOpen]);`;
+const newPostModalModel = `const MODELS = [
+  { id: "any", label: "Не выбрано" },`;
 
-replaceExact(oldEffectBlock, newEffectBlock, 'Оптимизация сброса состояния формы и автоперевода');
+replaceInFile(postModalPath, oldPostModalModel, newPostModalModel, 'Переименование модели в Any -> Не выбрано (PostModal)');
 
-try {
-  fs.writeFileSync(targetFile, code, 'utf8');
-  console.log('--- ИСПРАВЛЕНИЯ ЗАПИСАНЫ УСПЕШНО ---');
-} catch (err) {
-  console.error('[ОШИБКА] Не удалось перезаписать файл:', err.message);
-}
+// 2. Изменение labels в AgentCard.tsx
+const oldAgentCardModelLabels = `const MODEL_LABELS: Record<string, string> = {
+  any: "Any",`;
+
+const newAgentCardModelLabels = `const MODEL_LABELS: Record<string, string> = {
+  any: "Не выбрано",`;
+
+replaceInFile(agentCardPath, oldAgentCardModelLabels, newAgentCardModelLabels, 'Переименование метки Any -> Не выбрано (AgentCard)');
+
+// 3. Условный рендеринг бейджа модели в AgentCard.tsx (скрытие, если выбрано "any")
+const oldBadgeRender = `<span className="inline-flex items-center text-[8px] font-extrabold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-1.5 py-0.5 rounded uppercase">
+                {MODEL_LABELS[agent.model] || "Model"}
+              </span>`;
+
+const newBadgeRender = `{agent.model && agent.model !== "any" && (
+                <span className="inline-flex items-center text-[8px] font-extrabold text-cyan-400 bg-cyan-950/30 border border-cyan-900/50 px-1.5 py-0.5 rounded uppercase">
+                  {MODEL_LABELS[agent.model] || "Model"}
+                </span>
+              )}`;
+
+replaceInFile(agentCardPath, oldBadgeRender, newBadgeRender, 'Скрытие бейджа модели, если она не выбрана');
+
+console.log('--- ЗАВЕРШЕНО ---');

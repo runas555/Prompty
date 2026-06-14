@@ -13,7 +13,7 @@ interface PostModalProps {
 }
 
 const MODELS = [
-  { id: "any", label: "Any" },
+  { id: "any", label: "Не выбрано" },
   { id: "gpt4", label: "GPT-4" },
   { id: "claude", label: "Claude" },
   { id: "gemini", label: "Gemini" },
