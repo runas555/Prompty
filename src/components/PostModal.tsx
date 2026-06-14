@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, Sparkles, AlertCircle, Globe } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Sparkles, AlertCircle, Globe, FileText, Check, Copy, Maximize2, Minimize2, Hash, Play, HelpCircle } from "lucide-react";
 import { Agent } from "./AgentCard";
 import { useLanguage } from "@/lib/i18n";
 
@@ -46,6 +46,10 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (agent) {
@@ -68,18 +72,65 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
 
   if (!isOpen) return null;
 
+  // Динамическое определение переменных промпта
+  const detectVariables = (text: string): string[] => {
+    const regex = /\{\{([^}]+)\}\}|\[([^\]]+)\]/g;
+    const vars: string[] = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const variableName = (match[1] || match[2]).trim();
+      if (variableName && !vars.includes(variableName)) {
+        vars.push(variableName);
+      }
+    }
+    return vars;
+  };
+
+  const variables = detectVariables(prompt);
+
+  // Спецификация расчетных метрик
+  const characterCount = prompt.length;
+  const wordCount = prompt.trim() === "" ? 0 : prompt.trim().split(/\s+/).length;
+  const estimatedTokens = Math.round(characterCount / 3.8);
+
+  // Синхронизация прокрутки номеров строк с текстовым полем
+  const handleScroll = () => {
+    if (textareaRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
+  const lineCount = prompt.split("\n").length;
+  const lineNumbers = Array.from({ length: Math.max(lineCount, 1) }, (_, i) => i + 1);
+
+  // Быстрая вставка шаблонов разметки
+  const insertTemplate = (prefix: string, suffix: string) => {
+    if (!textareaRef.current) return;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    const text = textareaRef.current.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const selected = text.substring(start, end) || "text";
+    
+    const newPrompt = `${before}${prefix}${selected}${suffix}${after}`;
+    setPrompt(newPrompt);
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPos = start + prefix.length + selected.length + suffix.length;
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 50);
+  };
+
   async function translateTextWithContext(nameText: string, promptText: string, toLang: "en" | "ru"): Promise<string> {
     try {
       const fromLang = toLang === "en" ? "ru" : "en";
-      
-      // Очищаем текст промпта от переносов для компактности
       const cleanPrompt = promptText.replace(/[\r\n]+/g, " ").trim();
-      
-      // Рассчитываем допустимый размер контекста, оставляя запас под имя (общий лимит API 480 символов)
       const maxPromptLen = 480 - nameText.length - 10;
       const promptSlice = cleanPrompt.substring(0, Math.max(50, maxPromptLen));
-      
-      // Формируем комбинированный запрос с разделителем "|||"
       const textToTranslate = `${promptSlice} ||| ${nameText}`;
       
       const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=${fromLang}|${toLang}`);
@@ -121,8 +172,6 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       if (autoTranslate) {
         const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalName);
         const toLang = hasCyrillic ? "en" : "ru";
-        
-        // Передаем промпт в качестве контекста перевода
         const translatedName = await translateTextWithContext(finalName, finalPrompt, toLang);
         finalName = `${finalName} | ${translatedName}`;
       }
@@ -141,168 +190,278 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl z-10 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onClick={onClose} />
+      
+      <div className={`relative bg-slate-900 border border-slate-800 rounded-2xl w-full overflow-hidden shadow-2xl z-10 transition-all duration-300 flex flex-col ${
+        isFullscreen ? "h-[96vh] max-w-[98vw]" : "max-h-[92vh] max-w-5xl"
+      }`}>
         
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-cyan-400" />
-            <h2 className="text-lg font-bold text-slate-100">
-              {agent ? t("modalEditAgent") : t("modalCreateAgent")}
-            </h2>
+        {/* Шапка Студии */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/75 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-inner">
+              <Sparkles className="h-4 w-4 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-black text-slate-100 uppercase tracking-widest">
+                  Prompt Studio
+                </h2>
+                <span className="text-[10px] font-bold bg-indigo-950/60 border border-indigo-900 text-indigo-400 px-2 py-0.5 rounded-full">
+                  v2.0 Beta
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Специализированная среда проектирования LLM-инструкций</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg hover:bg-slate-800 transition-all">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button 
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)} 
+              className="text-slate-500 hover:text-slate-300 p-2 rounded-lg hover:bg-slate-800/80 transition-all"
+              title={isFullscreen ? "Свернуть окно" : "Развернуть на весь экран"}
+            >
+              {isFullscreen ? <Minimize2 className="h-4.5 w-4.5" /> : <Maximize2 className="h-4.5 w-4.5" />}
+            </button>
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-300 p-2 rounded-lg hover:bg-slate-800/80 transition-all">
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto p-6 gap-4">
-          {error && (
-            <div className="bg-red-950/50 border border-red-800 rounded-xl p-4 flex items-start gap-3 text-sm text-red-300">
-              <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Name */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t("modalAgentNameLabel")}
-            </label>
-            <input
-              type="text"
-              placeholder={t("modalAgentNamePlaceholder")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={loading}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Selector Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Category */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                {t("sidebarCategories")}
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+        {/* Форма Студии */}
+        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row flex-1 overflow-hidden">
+          
+          {/* Левая Панель: Редактор Промпта */}
+          <div className="flex-1 flex flex-col border-r border-slate-800 bg-slate-950/15 overflow-hidden">
+            
+            {/* Панель быстрых кнопок разметки */}
+            <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-800/70 bg-slate-950/30 select-none">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider mr-2">Форматирование:</span>
+              <button
+                type="button"
+                onClick={() => insertTemplate('{{', '}}')}
+                className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-1 rounded hover:text-indigo-400 hover:border-indigo-500/50 transition-all"
+                title="Вставить системную переменную"
               >
-                {CATEGORIES_LIST.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {language === "ru" ? cat.label : cat.labelEn}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Model */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Model
-              </label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                {"{{ Переменная }}"}
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTemplate('[', ']')}
+                className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-1 rounded hover:text-cyan-400 hover:border-cyan-500/50 transition-all"
               >
-                {MODELS.map((mod) => (
-                  <option key={mod.id} value={mod.id}>
-                    {mod.label}
-                  </option>
-                ))}
-              </select>
+                {"[ Тэг ]"}
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTemplate('### SYSTEM\n', '')}
+                className="text-[10px] font-semibold text-slate-500 bg-slate-900/60 border border-slate-850 px-2 py-1 rounded hover:text-slate-200 hover:border-slate-700 transition-all"
+              >
+                System Block
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTemplate('### USER\n', '')}
+                className="text-[10px] font-semibold text-slate-500 bg-slate-900/60 border border-slate-850 px-2 py-1 rounded hover:text-slate-200 hover:border-slate-700 transition-all"
+              >
+                User Block
+              </button>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Tags
-              </label>
-              <input
-                type="text"
-                placeholder="seo, react, chatgpt"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
+            {/* Поле редактирования с номерами строк */}
+            <div className="flex-1 flex relative overflow-hidden font-mono text-sm bg-slate-950/70 select-text">
+              {/* Линейка номеров строк */}
+              <div 
+                ref={lineNumbersRef}
+                className="w-11 bg-slate-950/90 py-4 select-none border-r border-slate-900 text-slate-600 text-[10px] text-right pr-2.5 overflow-hidden font-mono leading-relaxed"
+              >
+                {lineNumbers.map(num => (
+                  <div key={num} className="h-[21px]">{num}</div>
+                ))}
+              </div>
+
+              {/* Текстовый редактор */}
+              <textarea
+                ref={textareaRef}
+                placeholder={t("modalAgentPromptPlaceholder")}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onScroll={handleScroll}
                 disabled={loading}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                className="flex-1 bg-transparent py-4 px-4 text-slate-200 placeholder-slate-700 focus:outline-none resize-none overflow-y-auto leading-relaxed h-full scroll-smooth select-text"
+                spellCheck="false"
               />
             </div>
-          </div>
 
-          {/* Translation Toggle Switch Slider */}
-          <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4 mt-2">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-indigo-950 border border-indigo-900/60 flex items-center justify-center text-indigo-400">
-                <Globe className="h-4.5 w-4.5" />
+            {/* Статистика и метрики редактора */}
+            <div className="flex items-center justify-between px-4 py-2 border-t border-slate-800 bg-slate-950/40 text-[10px] font-semibold text-slate-500 font-mono">
+              <div className="flex items-center gap-4">
+                <span>CHARS: <strong className="text-slate-300">{characterCount}</strong></span>
+                <span>WORDS: <strong className="text-slate-300">{wordCount}</strong></span>
+                <span className="hidden sm:inline">EST. TOKENS: <strong className="text-indigo-400">{estimatedTokens}</strong></span>
               </div>
-              <div>
-                <p className="text-xs font-bold text-slate-200">
-                  {language === "ru" ? "Переводить этот пост?" : "Translate this post?"}
-                </p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  {language === "ru" 
-                    ? "Автоматический качественный перевод на альтернативный язык (RU <-> EN)" 
-                    : "Automatic quality translation to the alternate language (RU <-> EN)"}
-                </p>
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>ONLINE IDE</span>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setAutoTranslate(!autoTranslate)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                autoTranslate ? "bg-indigo-600" : "bg-slate-800"
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  autoTranslate ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
           </div>
 
-          {/* Prompt Area */}
-          <div className="flex flex-col gap-1.5 flex-1 mt-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t("modalAgentPromptLabel")}
-            </label>
-            <textarea
-              placeholder={t("modalAgentPromptPlaceholder")}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={loading}
-              className="w-full h-56 bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none"
-            />
+          {/* Правая Панель: Метаданные и Инструменты Студии */}
+          <div className="w-full md:w-[350px] bg-slate-900 p-6 flex flex-col justify-between gap-4 overflow-y-auto">
+            <div className="flex flex-col gap-4">
+              
+              {error && (
+                <div className="bg-red-950/40 border border-red-900/60 rounded-xl p-3 flex items-start gap-2.5 text-xs text-red-300">
+                  <AlertCircle className="h-4.5 w-4.5 text-red-400 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Название промпта */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  {t("modalAgentNameLabel")}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t("modalAgentNamePlaceholder")}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Модель ИИ */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  Назначенная модель ИИ
+                </label>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  {MODELS.map((mod) => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Категория публикации */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  {t("sidebarCategories")}
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  {CATEGORIES_LIST.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {language === "ru" ? cat.label : cat.labelEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Теги */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  Теги публикации
+                </label>
+                <input
+                  type="text"
+                  placeholder="seo, react, prompt"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Детектор Переменных */}
+              <div className="bg-slate-950/45 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Промпт-Переменные</span>
+                  <span className="text-[9px] text-slate-600 font-mono font-bold">DETECTED: {variables.length}</span>
+                </div>
+                {variables.length === 0 ? (
+                  <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                    Переменные не обнаружены. Используйте синтаксис {"{{name}}"} или {"[name]"} для выделения изменяемых параметров.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 max-h-[75px] overflow-y-auto">
+                    {variables.map((v, i) => (
+                      <span key={i} className="text-[9px] font-mono font-bold bg-indigo-950/50 text-indigo-300 border border-indigo-900/60 px-2 py-0.5 rounded-md">
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Перевод поста */}
+              <div className="bg-slate-950/30 border border-slate-850 rounded-xl p-3.5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Globe className="h-4 w-4 text-slate-500 shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-300">Мультиязычный перевод</p>
+                    <p className="text-[8px] text-slate-500">Автоматический дубликат (RU/EN)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoTranslate(!autoTranslate)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    autoTranslate ? "bg-indigo-600" : "bg-slate-800"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      autoTranslate ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+            </div>
+
+            {/* Кнопки Действия Студии */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-800/80 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+              >
+                {t("modalCancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-55 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/10 active:scale-95 flex items-center gap-1.5"
+              >
+                {loading ? t("modalSaving") : (
+                  <>
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Сохранить в Студии</span>
+                  </>
+                )}
+              </button>
+            </div>
+
           </div>
 
-          {/* Bottom Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200"
-            >
-              {t("modalCancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-55 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200"
-            >
-              {loading ? t("modalSaving") : t("modalSave")}
-            </button>
-          </div>
         </form>
       </div>
     </div>
