@@ -128,7 +128,8 @@ export const translations = {
     catSecurity: "Безопасность и Jailbreak",
     catCreative: "Творчество и ролевые",
     catProductivity: "Личная эффективность",
-    catOther: "Разное"
+    catOther: "Разное",
+    modelNotSelected: "Не выбрано"
   },
   en: {
     title: "PromptSocial - Social Network for Prompt Engineers",
@@ -245,7 +246,8 @@ export const translations = {
     catSecurity: "Security & Jailbreak",
     catCreative: "Creative & Roleplay",
     catProductivity: "Personal Productivity",
-    catOther: "Other"
+    catOther: "Other",
+    modelNotSelected: "Not selected"
   }
 };
 

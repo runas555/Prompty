@@ -494,7 +494,7 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
                 >
                   {MODELS.map((mod) => (
                     <option key={mod.id} value={mod.id}>
-                      {mod.label}
+                      {mod.id === "any" ? t("modelNotSelected") : mod.label}
                     </option>
                   ))}
                 </select>
