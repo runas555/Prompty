@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Sparkles, AlertCircle, Globe, FileText, Check, Copy, Maximize2, Minimize2, Hash, Play, HelpCircle, GitCommit, GitCompare, RotateCcw } from "lucide-react";
+import { X, Sparkles, AlertCircle, Globe, FileText, Check, Copy, Maximize2, Minimize2, Hash, Play, HelpCircle, GitCompare, RotateCcw } from "lucide-react";
 import { Agent } from "./AgentCard";
 import { useLanguage } from "@/lib/i18n";
 
@@ -91,41 +91,6 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
       }
     } catch (err) {
       console.error("Error fetching versions in PostModal:", err);
-    }
-  };
-
-  const handleCommitSnapshot = async () => {
-    if (!name.trim()) {
-      setError(t("errorAgentName"));
-      return;
-    }
-    if (!prompt.trim()) {
-      setError(t("errorAgentPrompt"));
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      let finalName = name.trim();
-      let finalPrompt = prompt.trim();
-      if (autoTranslate) {
-        const hasCyrillic = /[а-яА-ЯёЁ]/.test(finalName);
-        const toLang = hasCyrillic ? "en" : "ru";
-        const translatedName = await translateTextWithContext(finalName, finalPrompt, toLang);
-        finalName = `s${finalName} | ${translatedName}`;
-      }
-      const success = await onSave(finalName, finalPrompt, category, model, tags.trim());
-      if (success) {
-        await fetchVersions();
-        setError(t("studioSuccessCommit"));
-        setTimeout(() => setError(""), 3000);
-      } else {
-        setError(t("errorAgentSave"));
-      }
-    } catch (err: any) {
-      setError(err.message || t("errorNetwork"));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -590,22 +555,6 @@ export default function PostModal({ isOpen, onClose, onSave, agent }: PostModalP
                 </>
               ) : (
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between bg-slate-950/40 border border-slate-850 p-3 rounded-xl">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-300">{t("studioQuickSnapshot")}</h4>
-                      <p className="text-[9px] text-slate-500">{t("studioQuickSnapshotDesc")}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCommitSnapshot}
-                      disabled={loading}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all"
-                    >
-                      <GitCommit className="h-3.5 w-3.5" />
-                      {t("studioCommit")}
-                    </button>
-                  </div>
-
                   <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
                     {versions.length === 0 ? (
                       <p className="text-center text-xs text-slate-500 py-6 italic">{t("studioEmptyHistory")}</p>
